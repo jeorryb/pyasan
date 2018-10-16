@@ -1,0 +1,64 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Connection: [keep-alive]
+      User-Agent: [python-requests/2.18.4]
+    method: GET
+    uri: https://data.nasa.gov/resource/nasa-patents.json?%24q=fuel
+  response:
+    body:
+      string: !!binary |
+        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
+        fv0b5chKbjUWAAA=
+    headers:
+      Access-Control-Allow-Origin: ['*']
+      Age: ['2']
+      Connection: [close]
+      Content-Encoding: [gzip]
+      Content-Type: [application/json; charset=utf-8]
+      Date: ['Tue, 16 Oct 2018 14:10:01 GMT']
+      ETag: ['"e6c5b51e8f5017f096a7401d90689be5--gzip"']
+      Last-Modified: ['Wed, 27 Jun 2018 23:16:53 GMT']
+      Server: [nginx]
+      Strict-Transport-Security: [max-age=31536000; includeSubDomains; preload, max-age=31536000;
+          includeSubDomains]
+      Transfer-Encoding: [chunked]
+      Vary: [Accept-Encoding]
+      X-Frame-Options: [DENY]
+      X-SODA2-Fields: ['["patent_number","center","patent_expiration_date","case_number","title","application_sn","status"]']
+      X-SODA2-Legacy-Types: ['true']
+      X-SODA2-Types: ['["text","text","calendar_date","text","text","text","text"]']
+      X-SODA2-Warning: ['X-SODA2-Fields, X-SODA2-Types, and X-SODA2-Legacy-Types are
+          deprecated']
+      X-Socrata-Region: [aws-us-east-1-fedramp-prod]
+      X-Socrata-RequestId: [83q7ckgi82bykf6oqjsmqoyzz]
+    status: {code: 200, message: OK}
+version: 1

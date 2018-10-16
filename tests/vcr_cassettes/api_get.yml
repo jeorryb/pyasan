@@ -1,0 +1,41 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Connection: [keep-alive]
+      User-Agent: [python-requests/2.18.4]
+    method: GET
+    uri: https://data.nasa.gov/resource/nasa-patents.json?patent_number=5694939&%24%24app_token=
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAAE2OwarCMBBF9/2KIQtXDaavrVh3QXzgQhfq7vGQmA4atGnJTEER/11tXAizuufO
+        mfmDewIgOsPoee/75oBBwAxEOamKKq9E+sb2BT/5Wm816AYJNkhogj3BPNL0S4TXzgXDrvX7+pUM
+        mz8qK2WmpMp3Ss2G+dgN4fdpvZnLrFDFVGaxwI4v0aF7bo/onZW/iPXB2DPsgnHe+SMsrhisI4QV
+        8qmtYQTbGzE20WG67uJsfIn8IFPTcVnkqaryWCE23NOAlkQ91iJ5JPD/BHBjHr8jAQAA
+    headers:
+      Access-Control-Allow-Origin: ['*']
+      Age: ['0']
+      Connection: [close]
+      Content-Encoding: [gzip]
+      Content-Type: [application/json; charset=utf-8]
+      Date: ['Wed, 10 Oct 2018 19:16:31 GMT']
+      ETag: ['"b4195f6b0dcad35e9c5f178c5b89dde--gzip"']
+      Last-Modified: ['Wed, 27 Jun 2018 23:16:53 GMT']
+      Server: [nginx]
+      Strict-Transport-Security: [max-age=31536000; includeSubDomains; preload, max-age=31536000;
+          includeSubDomains]
+      Transfer-Encoding: [chunked]
+      Vary: [Accept-Encoding]
+      X-Frame-Options: [DENY]
+      X-SODA2-Fields: ['["patent_number","center","patent_expiration_date","case_number","title","application_sn","status"]']
+      X-SODA2-Legacy-Types: ['true']
+      X-SODA2-Types: ['["text","text","calendar_date","text","text","text","text"]']
+      X-SODA2-Warning: ['X-SODA2-Fields, X-SODA2-Types, and X-SODA2-Legacy-Types are
+          deprecated']
+      X-Socrata-Region: [aws-us-east-1-fedramp-prod]
+      X-Socrata-RequestId: [3qleb9gps91x3chnr692cjds6]
+    status: {code: 200, message: OK}
+version: 1
