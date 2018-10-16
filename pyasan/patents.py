@@ -1,4 +1,5 @@
 from . import helpers
+import pprint
 
 class Patents(object):
     def __init__(self, url=helpers.get_url('PATENT'), params=None, **kwargs):
@@ -7,7 +8,12 @@ class Patents(object):
     
     def req(self):
         
-        return helpers.api_get(self.url, self.params)
+        self.response = helpers.api_get(self.url, self.params)
+        return self.response
+    
+    def __str__(self):
+        return pprint.pformat(self.req())
+    
 
 
     
