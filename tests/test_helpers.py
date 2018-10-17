@@ -7,7 +7,6 @@ from pytest import fixture
 def test_create_config_successfull(tmpdir):
     """Tests that creation of config.ini is successfull"""
 
-    print(tmpdir)
     fh = tmpdir.join("config.ini")
     helpers.create_config(fh)
 
