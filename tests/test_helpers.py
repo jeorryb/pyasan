@@ -8,23 +8,24 @@ def test_create_config_successfull(tmpdir):
     """Tests that creation of config.ini is successfull"""
 
     fh = tmpdir.join("config.ini")
+    fh = str(fh)
     helpers.create_config(fh)
 
-    filename = os.path.join(fh.dirname, fh.basename)
 
     config = configparser.ConfigParser()
-    config.read(filename)
+
+    config.read(fh)
 
     assert config.sections() == ['Global', 'PATENT']
 
 def test_get_config_successfull(tmpdir):
     fh = tmpdir.join('config.ini')
+    fh = str(fh)
     helpers.get_config(fh)
 
-    filename = os.path.join(fh.dirname, fh.basename)
-
     config = configparser.ConfigParser()
-    config.read(filename)
+
+    config.read(fh)
 
     assert os.path.exists(fh)
     assert config.sections() == ['Global', 'PATENT']
