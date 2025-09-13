@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyasan"
+version = "0.1.0"
+description = "A Python wrapper and CLI for NASA's REST APIs"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Jeorry Balasabas", email = "jeorry@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+keywords = ["nasa", "api", "astronomy", "apod", "cli"]
+requires-python = ">=3.8"
+dependencies = [
+    "requests>=2.25.0",
+    "click>=8.0.0",
+    "python-dotenv>=0.19.0",
+    "rich>=12.0.0",
+    "pydantic>=1.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "black>=22.0",
+    "flake8>=4.0",
+    "mypy>=0.900",
+]
+
+[project.urls]
+Homepage = "https://github.com/jeorryb/pyasan"
+Repository = "https://github.com/jeorryb/pyasan"
+Documentation = "https://github.com/jeorryb/pyasan#readme"
+"Bug Tracker" = "https://github.com/jeorryb/pyasan/issues"
+
+[project.scripts]
+pyasan = "pyasan.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pyasan*"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
