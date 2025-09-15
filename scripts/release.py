@@ -111,8 +111,14 @@ def main():
     print(f"\nCreating tag: {tag_name}")
     run_command(f'git tag -a {tag_name} -m "Release {new_version}"')
     
-    print(f"\nPushing tag to GitHub...")
-    run_command("git push origin main")  # or master, depending on your default branch
+    # Get the current branch name
+    result = run_command("git branch --show-current", check=False)
+    current_branch = result.stdout.strip() if result.stdout.strip() else "master"
+    
+    print(f"\nPushing to branch: {current_branch}")
+    run_command(f"git push origin {current_branch}")
+    
+    print(f"Pushing tag: {tag_name}")
     run_command(f"git push origin {tag_name}")
     
     print(f"""

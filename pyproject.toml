@@ -1,13 +1,13 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=64.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyasan"
-version = "0.3.0"
+version = "0.3.1"
 description = "A Python wrapper and CLI for NASA's REST APIs"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     {name = "Jeorry Balasabas", email = "jeorry@gmail.com"}
 ]
