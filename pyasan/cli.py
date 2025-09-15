@@ -214,17 +214,25 @@ def apod_get(
         print_apod(apod, show_explanation=not no_explanation)
 
     except ValidationError as e:
-        console.print(f"[red]Validation Error:[/red] {e}", )
+        console.print(
+            f"[red]Validation Error:[/red] {e}",
+        )
         sys.exit(1)
     except AuthenticationError as e:
-        console.print(f"[red]Authentication Error:[/red] {e}", )
+        console.print(
+            f"[red]Authentication Error:[/red] {e}",
+        )
         console.print("[yellow]Get your free API key at https://api.nasa.gov/[/yellow]")
         sys.exit(1)
     except APIError as e:
-        console.print(f"[red]API Error:[/red] {e}", )
+        console.print(
+            f"[red]API Error:[/red] {e}",
+        )
         sys.exit(1)
     except PyASANError as e:
-        console.print(f"[red]Error:[/red] {e}", )
+        console.print(
+            f"[red]Error:[/red] {e}",
+        )
         sys.exit(1)
 
 
@@ -266,17 +274,25 @@ def apod_random(
             print_apod_batch(result, show_explanation=not no_explanation)
 
     except ValidationError as e:
-        console.print(f"[red]Validation Error:[/red] {e}", )
+        console.print(
+            f"[red]Validation Error:[/red] {e}",
+        )
         sys.exit(1)
     except AuthenticationError as e:
-        console.print(f"[red]Authentication Error:[/red] {e}", )
+        console.print(
+            f"[red]Authentication Error:[/red] {e}",
+        )
         console.print("[yellow]Get your free API key at https://api.nasa.gov/[/yellow]")
         sys.exit(1)
     except APIError as e:
-        console.print(f"[red]API Error:[/red] {e}", )
+        console.print(
+            f"[red]API Error:[/red] {e}",
+        )
         sys.exit(1)
     except PyASANError as e:
-        console.print(f"[red]Error:[/red] {e}", )
+        console.print(
+            f"[red]Error:[/red] {e}",
+        )
         sys.exit(1)
 
 
@@ -321,17 +337,25 @@ def apod_range(
         print_apod_batch(batch, show_explanation=not no_explanation)
 
     except ValidationError as e:
-        console.print(f"[red]Validation Error:[/red] {e}", )
+        console.print(
+            f"[red]Validation Error:[/red] {e}",
+        )
         sys.exit(1)
     except AuthenticationError as e:
-        console.print(f"[red]Authentication Error:[/red] {e}", )
+        console.print(
+            f"[red]Authentication Error:[/red] {e}",
+        )
         console.print("[yellow]Get your free API key at https://api.nasa.gov/[/yellow]")
         sys.exit(1)
     except APIError as e:
-        console.print(f"[red]API Error:[/red] {e}", )
+        console.print(
+            f"[red]API Error:[/red] {e}",
+        )
         sys.exit(1)
     except PyASANError as e:
-        console.print(f"[red]Error:[/red] {e}", )
+        console.print(
+            f"[red]Error:[/red] {e}",
+        )
         sys.exit(1)
 
 
@@ -370,17 +394,25 @@ def apod_recent(
         print_apod_batch(batch, show_explanation=not no_explanation)
 
     except ValidationError as e:
-        console.print(f"[red]Validation Error:[/red] {e}", )
+        console.print(
+            f"[red]Validation Error:[/red] {e}",
+        )
         sys.exit(1)
     except AuthenticationError as e:
-        console.print(f"[red]Authentication Error:[/red] {e}", )
+        console.print(
+            f"[red]Authentication Error:[/red] {e}",
+        )
         console.print("[yellow]Get your free API key at https://api.nasa.gov/[/yellow]")
         sys.exit(1)
     except APIError as e:
-        console.print(f"[red]API Error:[/red] {e}", )
+        console.print(
+            f"[red]API Error:[/red] {e}",
+        )
         sys.exit(1)
     except PyASANError as e:
-        console.print(f"[red]Error:[/red] {e}", )
+        console.print(
+            f"[red]Error:[/red] {e}",
+        )
         sys.exit(1)
 
 
@@ -441,17 +473,25 @@ def mars_photos(
         print_mars_photos(photos, show_details=not no_details)
 
     except ValidationError as e:
-        console.print(f"[red]Validation Error:[/red] {e}", )
+        console.print(
+            f"[red]Validation Error:[/red] {e}",
+        )
         sys.exit(1)
     except AuthenticationError as e:
-        console.print(f"[red]Authentication Error:[/red] {e}", )
+        console.print(
+            f"[red]Authentication Error:[/red] {e}",
+        )
         console.print("[yellow]Get your free API key at https://api.nasa.gov/[/yellow]")
         sys.exit(1)
     except APIError as e:
-        console.print(f"[red]API Error:[/red] {e}", )
+        console.print(
+            f"[red]API Error:[/red] {e}",
+        )
         sys.exit(1)
     except PyASANError as e:
-        console.print(f"[red]Error:[/red] {e}", )
+        console.print(
+            f"[red]Error:[/red] {e}",
+        )
         sys.exit(1)
 
 
@@ -490,17 +530,25 @@ def mars_latest(rover: str, no_details: bool, api_key: Optional[str]) -> None:
         print_mars_photos(photos, show_details=not no_details)
 
     except ValidationError as e:
-        console.print(f"[red]Validation Error:[/red] {e}", )
+        console.print(
+            f"[red]Validation Error:[/red] {e}",
+        )
         sys.exit(1)
     except AuthenticationError as e:
-        console.print(f"[red]Authentication Error:[/red] {e}", )
+        console.print(
+            f"[red]Authentication Error:[/red] {e}",
+        )
         console.print("[yellow]Get your free API key at https://api.nasa.gov/[/yellow]")
         sys.exit(1)
     except APIError as e:
-        console.print(f"[red]API Error:[/red] {e}", )
+        console.print(
+            f"[red]API Error:[/red] {e}",
+        )
         sys.exit(1)
     except PyASANError as e:
-        console.print(f"[red]Error:[/red] {e}", )
+        console.print(
+            f"[red]Error:[/red] {e}",
+        )
         sys.exit(1)
 
 
@@ -538,17 +586,25 @@ def mars_manifest(rover: str, api_key: Optional[str]) -> None:
         print_manifest(manifest)
 
     except ValidationError as e:
-        console.print(f"[red]Validation Error:[/red] {e}", )
+        console.print(
+            f"[red]Validation Error:[/red] {e}",
+        )
         sys.exit(1)
     except AuthenticationError as e:
-        console.print(f"[red]Authentication Error:[/red] {e}", )
+        console.print(
+            f"[red]Authentication Error:[/red] {e}",
+        )
         console.print("[yellow]Get your free API key at https://api.nasa.gov/[/yellow]")
         sys.exit(1)
     except APIError as e:
-        console.print(f"[red]API Error:[/red] {e}", )
+        console.print(
+            f"[red]API Error:[/red] {e}",
+        )
         sys.exit(1)
     except PyASANError as e:
-        console.print(f"[red]Error:[/red] {e}", )
+        console.print(
+            f"[red]Error:[/red] {e}",
+        )
         sys.exit(1)
 
 
@@ -576,10 +632,14 @@ def mars_cameras(rover: str) -> None:
         console.print("\n[dim]Use these camera names with the 'photos' command.[/dim]")
 
     except ValidationError as e:
-        console.print(f"[red]Validation Error:[/red] {e}", )
+        console.print(
+            f"[red]Validation Error:[/red] {e}",
+        )
         sys.exit(1)
     except PyASANError as e:
-        console.print(f"[red]Error:[/red] {e}", )
+        console.print(
+            f"[red]Error:[/red] {e}",
+        )
         sys.exit(1)
 
 
