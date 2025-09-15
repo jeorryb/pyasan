@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from datetime import date as date_type
-from typing import List
+from typing import List, Any
 from enum import Enum
 from pydantic import BaseModel, Field, field_validator
 
@@ -78,11 +78,11 @@ class Rover(BaseModel):
 
     @field_validator("landing_date", "launch_date", mode="before")
     @classmethod
-    def parse_date(cls, v):
+    def parse_date(cls, v: Any) -> date_type:
         """Parse date string to date object."""
         if isinstance(v, str):
             return datetime.strptime(v, "%Y-%m-%d").date()
-        return v
+        return v  # type: ignore
 
 
 class MarsPhoto(BaseModel):
@@ -97,11 +97,11 @@ class MarsPhoto(BaseModel):
 
     @field_validator("earth_date", mode="before")
     @classmethod
-    def parse_date(cls, v):
+    def parse_date(cls, v: Any) -> date_type:
         """Parse date string to date object."""
         if isinstance(v, str):
             return datetime.strptime(v, "%Y-%m-%d").date()
-        return v
+        return v  # type: ignore
 
 
 class MarsPhotosResponse(BaseModel):
@@ -113,11 +113,11 @@ class MarsPhotosResponse(BaseModel):
         """Get the number of photos."""
         return len(self.photos)
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         """Iterate over photos."""
         return iter(self.photos)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> MarsPhoto:
         """Get photo by index."""
         return self.photos[index]
 
@@ -132,11 +132,11 @@ class ManifestPhoto(BaseModel):
 
     @field_validator("earth_date", mode="before")
     @classmethod
-    def parse_date(cls, v):
+    def parse_date(cls, v: Any) -> date_type:
         """Parse date string to date object."""
         if isinstance(v, str):
             return datetime.strptime(v, "%Y-%m-%d").date()
-        return v
+        return v  # type: ignore
 
 
 class MissionManifest(BaseModel):
@@ -153,11 +153,11 @@ class MissionManifest(BaseModel):
 
     @field_validator("landing_date", "launch_date", "max_date", mode="before")
     @classmethod
-    def parse_date(cls, v):
+    def parse_date(cls, v: Any) -> date_type:
         """Parse date string to date object."""
         if isinstance(v, str):
             return datetime.strptime(v, "%Y-%m-%d").date()
-        return v
+        return v  # type: ignore
 
 
 class ManifestResponse(BaseModel):

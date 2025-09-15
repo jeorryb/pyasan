@@ -95,10 +95,10 @@ class APODClient(NASAClient):
             # API returns a single object for count=1
             if isinstance(response_data, list):
                 response_data = response_data[0]
-            return APODResponse(**response_data)
+            return APODResponse.model_validate(response_data)
         else:
             # API returns a list for count>1
-            items = [APODResponse(**item) for item in response_data]
+            items = [APODResponse.model_validate(item) for item in response_data]
             return APODBatch(items=items)
 
     def get_apod_range(
@@ -148,7 +148,7 @@ class APODClient(NASAClient):
             params["thumbs"] = "true"
 
         response_data = self._make_request(self.endpoint, params)
-        items = [APODResponse(**item) for item in response_data]
+        items = [APODResponse.model_validate(item) for item in response_data]
         return APODBatch(items=items)
 
     def get_recent_apods(

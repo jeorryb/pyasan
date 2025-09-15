@@ -101,7 +101,7 @@ class NASAClient:
                     status_code=response.status_code,
                 )
 
-            return response.json()
+            return response.json()  # type: ignore
 
         except requests.exceptions.Timeout:
             raise APIError("Request timed out")
@@ -110,10 +110,14 @@ class NASAClient:
         except requests.exceptions.RequestException as e:
             raise APIError(f"Request failed: {str(e)}")
 
-    def __enter__(self):
+    def _build_url(self, endpoint: str) -> str:
+        """Build the full URL for an endpoint."""
+        return f"{self.config.base_url}/{endpoint.lstrip('/')}"
+
+    def __enter__(self) -> "NASAClient":
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit."""
         self.session.close()

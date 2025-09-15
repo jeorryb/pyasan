@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyasan"
-version = "0.3.2"
+version = "0.3.3"
 description = "A Python wrapper and CLI for NASA's REST APIs"
 readme = "README.md"
 license = {text = "MIT"}
@@ -40,6 +40,7 @@ dev = [
     "black>=22.0",
     "flake8>=4.0",
     "mypy>=0.900",
+    "types-requests>=2.0",
 ]
 
 [project.urls]
@@ -60,10 +61,11 @@ line-length = 88
 target-version = ['py38', 'py39', 'py310', 'py311']
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"

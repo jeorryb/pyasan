@@ -1,5 +1,7 @@
 """Custom exceptions for PyASAN."""
 
+from typing import Optional, Dict, Any
+
 
 class PyASANError(Exception):
     """Base exception for PyASAN."""
@@ -11,7 +13,10 @@ class APIError(PyASANError):
     """Raised when the NASA API returns an error."""
 
     def __init__(
-        self, message: str, status_code: int = None, response_data: dict = None
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        response_data: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message)
         self.status_code = status_code

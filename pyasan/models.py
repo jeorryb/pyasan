@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from datetime import date as date_type
-from typing import Optional, List
+from typing import Optional, List, Any
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -21,11 +21,11 @@ class APODResponse(BaseModel):
 
     @field_validator("date", mode="before")
     @classmethod
-    def parse_date(cls, v):
+    def parse_date(cls, v: Any) -> date_type:
         """Parse date string to date object."""
         if isinstance(v, str):
             return datetime.strptime(v, "%Y-%m-%d").date()
-        return v
+        return v  # type: ignore
 
     @property
     def is_video(self) -> bool:
@@ -47,10 +47,10 @@ class APODBatch(BaseModel):
         """Get the number of items."""
         return len(self.items)
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         """Iterate over items."""
         return iter(self.items)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> APODResponse:
         """Get item by index."""
         return self.items[index]
