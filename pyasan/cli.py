@@ -13,8 +13,10 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from . import __version__
 from .apod import APODClient
+from .mars import MarsRoverPhotosClient
 from .exceptions import PyASANError, ValidationError, APIError, AuthenticationError
 from .models import APODResponse, APODBatch
+from .mars_models import MarsPhotosResponse, ManifestResponse
 
 console = Console()
 
@@ -67,6 +69,95 @@ def print_apod_batch(batch: APODBatch, show_explanation: bool = True) -> None:
         print_apod(apod, show_explanation)
 
 
+def print_mars_photo(photo, show_details: bool = True) -> None:
+    """Print Mars rover photo information in a formatted way."""
+    # Create title panel
+    title_text = Text(f"Sol {photo.sol} - {photo.camera.full_name}", style="bold red")
+    title_panel = Panel(
+        title_text, 
+        title=f"{photo.rover.name.title()} Rover - {photo.earth_date}", 
+        border_style="red"
+    )
+    console.print(title_panel)
+    
+    if show_details:
+        # Create info table
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_column("Field", style="cyan", no_wrap=True)
+        table.add_column("Value", style="white")
+        
+        table.add_row("Photo ID", str(photo.id))
+        table.add_row("Sol", str(photo.sol))
+        table.add_row("Earth Date", str(photo.earth_date))
+        table.add_row("Camera", f"{photo.camera.name} ({photo.camera.full_name})")
+        table.add_row("Rover", f"{photo.rover.name.title()} ({photo.rover.status})")
+        table.add_row("Image URL", photo.img_src)
+        
+        console.print(table)
+
+
+def print_mars_photos(photos: MarsPhotosResponse, show_details: bool = True) -> None:
+    """Print multiple Mars rover photos."""
+    if len(photos) == 0:
+        console.print("[yellow]No photos found for the specified criteria.[/yellow]")
+        return
+    
+    console.print(f"\n[bold cyan]Found {len(photos)} Mars rover photos[/bold cyan]\n")
+    
+    for i, photo in enumerate(photos):
+        if i > 0:
+            console.print("\n" + "─" * 80 + "\n")
+        print_mars_photo(photo, show_details)
+
+
+def print_manifest(manifest_response: ManifestResponse) -> None:
+    """Print Mars rover mission manifest."""
+    manifest = manifest_response.photo_manifest
+    
+    # Create title panel
+    title_text = Text(f"{manifest.name.title()} Mission Manifest", style="bold red")
+    title_panel = Panel(title_text, border_style="red")
+    console.print(title_panel)
+    
+    # Create mission info table
+    table = Table(show_header=False, box=None, padding=(0, 1))
+    table.add_column("Field", style="cyan", no_wrap=True)
+    table.add_column("Value", style="white")
+    
+    table.add_row("Launch Date", str(manifest.launch_date))
+    table.add_row("Landing Date", str(manifest.landing_date))
+    table.add_row("Status", manifest.status.title())
+    table.add_row("Max Sol", str(manifest.max_sol))
+    table.add_row("Max Date", str(manifest.max_date))
+    table.add_row("Total Photos", f"{manifest.total_photos:,}")
+    
+    console.print(table)
+    
+    # Show recent sols with photos
+    console.print(f"\n[bold cyan]Recent Sols with Photos (last 10):[/bold cyan]")
+    recent_photos = manifest.photos[-10:] if len(manifest.photos) > 10 else manifest.photos
+    
+    sols_table = Table()
+    sols_table.add_column("Sol", style="cyan")
+    sols_table.add_column("Earth Date", style="white")
+    sols_table.add_column("Photos", style="green")
+    sols_table.add_column("Cameras", style="yellow")
+    
+    for photo_info in recent_photos:
+        cameras_str = ", ".join(photo_info.cameras[:3])  # Show first 3 cameras
+        if len(photo_info.cameras) > 3:
+            cameras_str += f" (+{len(photo_info.cameras) - 3} more)"
+        
+        sols_table.add_row(
+            str(photo_info.sol),
+            str(photo_info.earth_date),
+            str(photo_info.total_photos),
+            cameras_str
+        )
+    
+    console.print(sols_table)
+
+
 @click.group(invoke_without_command=True)
 @click.option("--version", is_flag=True, help="Show version information")
 @click.pass_context
@@ -83,6 +174,12 @@ def main(ctx: click.Context, version: bool) -> None:
 @main.group()
 def apod() -> None:
     """Astronomy Picture of the Day commands."""
+    pass
+
+
+@main.group()
+def mars() -> None:
+    """Mars Rover Photos commands."""
     pass
 
 
@@ -329,6 +426,204 @@ def apod_recent(
         sys.exit(1)
     except APIError as e:
         console.print(f"[red]API Error:[/red] {e}", file=sys.stderr)
+        sys.exit(1)
+    except PyASANError as e:
+        console.print(f"[red]Error:[/red] {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+@mars.command("photos")
+@click.option(
+    "--rover", "-r", required=True,
+    type=click.Choice(["perseverance", "curiosity", "opportunity", "spirit"], case_sensitive=False),
+    help="Mars rover name"
+)
+@click.option(
+    "--sol", "-s", type=int,
+    help="Martian sol (day) - cannot be used with --earth-date"
+)
+@click.option(
+    "--earth-date", "-d",
+    help="Earth date in YYYY-MM-DD format - cannot be used with --sol"
+)
+@click.option(
+    "--camera", "-c",
+    help="Camera abbreviation (e.g., FHAZ, RHAZ, MAST, NAVCAM)"
+)
+@click.option(
+    "--page", "-p", type=int,
+    help="Page number for pagination"
+)
+@click.option(
+    "--no-details", is_flag=True,
+    help="Don't show detailed photo information"
+)
+@click.option(
+    "--api-key",
+    envvar="NASA_API_KEY",
+    help="NASA API key (can also be set via NASA_API_KEY env var)"
+)
+def mars_photos(
+    rover: str,
+    sol: Optional[int],
+    earth_date: Optional[str],
+    camera: Optional[str],
+    page: Optional[int],
+    no_details: bool,
+    api_key: Optional[str]
+) -> None:
+    """Get Mars rover photos by sol or Earth date."""
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+            transient=True
+        ) as progress:
+            progress.add_task(f"Fetching {rover.title()} rover photos...", total=None)
+            
+            client = MarsRoverPhotosClient(api_key=api_key)
+            photos = client.get_photos(
+                rover=rover,
+                sol=sol,
+                earth_date=earth_date,
+                camera=camera,
+                page=page
+            )
+            
+        print_mars_photos(photos, show_details=not no_details)
+        
+    except ValidationError as e:
+        console.print(f"[red]Validation Error:[/red] {e}", file=sys.stderr)
+        sys.exit(1)
+    except AuthenticationError as e:
+        console.print(f"[red]Authentication Error:[/red] {e}", file=sys.stderr)
+        console.print("[yellow]Get your free API key at https://api.nasa.gov/[/yellow]")
+        sys.exit(1)
+    except APIError as e:
+        console.print(f"[red]API Error:[/red] {e}", file=sys.stderr)
+        sys.exit(1)
+    except PyASANError as e:
+        console.print(f"[red]Error:[/red] {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+@mars.command("latest")
+@click.option(
+    "--rover", "-r", required=True,
+    type=click.Choice(["perseverance", "curiosity", "opportunity", "spirit"], case_sensitive=False),
+    help="Mars rover name"
+)
+@click.option(
+    "--no-details", is_flag=True,
+    help="Don't show detailed photo information"
+)
+@click.option(
+    "--api-key",
+    envvar="NASA_API_KEY",
+    help="NASA API key (can also be set via NASA_API_KEY env var)"
+)
+def mars_latest(
+    rover: str,
+    no_details: bool,
+    api_key: Optional[str]
+) -> None:
+    """Get latest photos from a Mars rover."""
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+            transient=True
+        ) as progress:
+            progress.add_task(f"Fetching latest {rover.title()} photos...", total=None)
+            
+            client = MarsRoverPhotosClient(api_key=api_key)
+            photos = client.get_latest_photos(rover=rover)
+            
+        print_mars_photos(photos, show_details=not no_details)
+        
+    except ValidationError as e:
+        console.print(f"[red]Validation Error:[/red] {e}", file=sys.stderr)
+        sys.exit(1)
+    except AuthenticationError as e:
+        console.print(f"[red]Authentication Error:[/red] {e}", file=sys.stderr)
+        console.print("[yellow]Get your free API key at https://api.nasa.gov/[/yellow]")
+        sys.exit(1)
+    except APIError as e:
+        console.print(f"[red]API Error:[/red] {e}", file=sys.stderr)
+        sys.exit(1)
+    except PyASANError as e:
+        console.print(f"[red]Error:[/red] {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+@mars.command("manifest")
+@click.option(
+    "--rover", "-r", required=True,
+    type=click.Choice(["perseverance", "curiosity", "opportunity", "spirit"], case_sensitive=False),
+    help="Mars rover name"
+)
+@click.option(
+    "--api-key",
+    envvar="NASA_API_KEY",
+    help="NASA API key (can also be set via NASA_API_KEY env var)"
+)
+def mars_manifest(
+    rover: str,
+    api_key: Optional[str]
+) -> None:
+    """Get mission manifest for a Mars rover."""
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+            transient=True
+        ) as progress:
+            progress.add_task(f"Fetching {rover.title()} mission manifest...", total=None)
+            
+            client = MarsRoverPhotosClient(api_key=api_key)
+            manifest = client.get_manifest(rover=rover)
+            
+        print_manifest(manifest)
+        
+    except ValidationError as e:
+        console.print(f"[red]Validation Error:[/red] {e}", file=sys.stderr)
+        sys.exit(1)
+    except AuthenticationError as e:
+        console.print(f"[red]Authentication Error:[/red] {e}", file=sys.stderr)
+        console.print("[yellow]Get your free API key at https://api.nasa.gov/[/yellow]")
+        sys.exit(1)
+    except APIError as e:
+        console.print(f"[red]API Error:[/red] {e}", file=sys.stderr)
+        sys.exit(1)
+    except PyASANError as e:
+        console.print(f"[red]Error:[/red] {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+@mars.command("cameras")
+@click.option(
+    "--rover", "-r", required=True,
+    type=click.Choice(["perseverance", "curiosity", "opportunity", "spirit"], case_sensitive=False),
+    help="Mars rover name"
+)
+def mars_cameras(rover: str) -> None:
+    """List available cameras for a Mars rover."""
+    try:
+        client = MarsRoverPhotosClient()
+        cameras = client.get_rover_cameras(rover=rover)
+        
+        console.print(f"\n[bold cyan]{rover.title()} Rover Cameras:[/bold cyan]\n")
+        
+        for camera in cameras:
+            console.print(f"  • {camera}")
+        
+        console.print(f"\n[dim]Use these camera names with the 'photos' command.[/dim]")
+        
+    except ValidationError as e:
+        console.print(f"[red]Validation Error:[/red] {e}", file=sys.stderr)
         sys.exit(1)
     except PyASANError as e:
         console.print(f"[red]Error:[/red] {e}", file=sys.stderr)

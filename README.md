@@ -7,8 +7,9 @@ A Python wrapper and command-line interface for NASA's REST APIs, starting with 
 
 ## Features
 
-- 🌟 **Easy-to-use Python API** for NASA's APOD service
+- 🌟 **Easy-to-use Python API** for NASA's APOD and Mars Rover Photos services
 - 🖥️ **Beautiful command-line interface** with rich formatting
+- 🔴 **Mars Rover Photos** - Access photos from Perseverance, Curiosity, Opportunity, and Spirit
 - 🔑 **Flexible authentication** (API key or environment variables)
 - 📊 **Comprehensive data models** with validation
 - 🛡️ **Robust error handling** and retry logic
@@ -49,6 +50,8 @@ pip install -e ".[dev]"
 
 ### Python API
 
+#### Astronomy Picture of the Day (APOD)
+
 ```python
 from pyasan import APODClient
 
@@ -86,9 +89,46 @@ apods = client.get_apod_range(
 recent = client.get_recent_apods(days=7)
 ```
 
+#### Mars Rover Photos
+
+```python
+from pyasan import MarsRoverPhotosClient
+
+# Initialize client
+client = MarsRoverPhotosClient(api_key="your_api_key_here")
+
+# Get available rovers
+rovers = client.get_available_rovers()
+print(rovers)  # ['perseverance', 'curiosity', 'opportunity', 'spirit']
+
+# Get photos by Martian sol (day)
+photos = client.get_photos_by_sol("curiosity", sol=1000, camera="MAST")
+print(f"Found {len(photos)} photos from Sol 1000")
+
+# Get photos by Earth date
+photos = client.get_photos_by_earth_date("perseverance", "2023-01-01")
+for photo in photos:
+    print(f"Photo ID: {photo.id}, Camera: {photo.camera.full_name}")
+
+# Get latest photos
+latest = client.get_latest_photos("curiosity")
+print(f"Latest photos: {len(latest)}")
+
+# Get mission manifest
+manifest = client.get_manifest("curiosity")
+print(f"Total photos: {manifest.photo_manifest.total_photos:,}")
+print(f"Mission status: {manifest.photo_manifest.status}")
+
+# Get available cameras for a rover
+cameras = client.get_rover_cameras("perseverance")
+print(f"Perseverance cameras: {cameras}")
+```
+
 ### Command Line Interface
 
-The CLI provides a beautiful, user-friendly interface to NASA's APOD API:
+The CLI provides a beautiful, user-friendly interface to NASA's APIs:
+
+#### APOD Commands
 
 ```bash
 # Get today's APOD
@@ -114,9 +154,42 @@ pyasan apod recent --days 7
 
 # Hide explanation text for cleaner output
 pyasan apod get --no-explanation
+```
 
-# Use specific API key
+#### Mars Rover Photos Commands
+
+```bash
+# Get photos by sol (Martian day)
+pyasan mars photos --rover curiosity --sol 1000 --camera MAST
+
+# Get photos by Earth date
+pyasan mars photos --rover perseverance --earth-date 2023-01-01
+
+# Get latest photos from a rover
+pyasan mars latest --rover curiosity
+
+# Get mission manifest
+pyasan mars manifest --rover curiosity
+
+# List available cameras for a rover
+pyasan mars cameras --rover perseverance
+
+# Get photos with pagination
+pyasan mars photos --rover curiosity --sol 1000 --page 2
+
+# Hide detailed photo information
+pyasan mars photos --rover curiosity --sol 1000 --no-details
+```
+
+#### Global Options
+
+```bash
+# Use specific API key for any command
 pyasan apod get --api-key your_api_key_here
+pyasan mars photos --rover curiosity --sol 1000 --api-key your_api_key_here
+
+# Show version
+pyasan --version
 ```
 
 ## API Reference
@@ -172,6 +245,82 @@ Get recent Astronomy Pictures of the Day.
 
 **Returns:** `APODBatch`
 
+### MarsRoverPhotosClient
+
+The main client for interacting with NASA's Mars Rover Photos API.
+
+#### Methods
+
+##### `get_photos(rover, sol=None, earth_date=None, camera=None, page=None)`
+
+Get Mars rover photos by sol or Earth date.
+
+**Parameters:**
+- `rover` (str): Rover name (perseverance, curiosity, opportunity, spirit)
+- `sol` (int, optional): Martian sol (day) - cannot be used with earth_date
+- `earth_date` (str|date, optional): Earth date in YYYY-MM-DD format - cannot be used with sol
+- `camera` (str, optional): Camera abbreviation (e.g., FHAZ, RHAZ, MAST, NAVCAM)
+- `page` (int, optional): Page number for pagination
+
+**Returns:** `MarsPhotosResponse`
+
+##### `get_photos_by_sol(rover, sol, camera=None, page=None)`
+
+Get Mars rover photos by Martian sol.
+
+**Parameters:**
+- `rover` (str): Rover name
+- `sol` (int): Martian sol (day)
+- `camera` (str, optional): Camera abbreviation
+- `page` (int, optional): Page number for pagination
+
+**Returns:** `MarsPhotosResponse`
+
+##### `get_photos_by_earth_date(rover, earth_date, camera=None, page=None)`
+
+Get Mars rover photos by Earth date.
+
+**Parameters:**
+- `rover` (str): Rover name
+- `earth_date` (str|date): Earth date in YYYY-MM-DD format or date object
+- `camera` (str, optional): Camera abbreviation
+- `page` (int, optional): Page number for pagination
+
+**Returns:** `MarsPhotosResponse`
+
+##### `get_latest_photos(rover)`
+
+Get the latest photos from a Mars rover.
+
+**Parameters:**
+- `rover` (str): Rover name
+
+**Returns:** `MarsPhotosResponse`
+
+##### `get_manifest(rover)`
+
+Get mission manifest for a Mars rover.
+
+**Parameters:**
+- `rover` (str): Rover name
+
+**Returns:** `ManifestResponse`
+
+##### `get_rover_cameras(rover)`
+
+Get list of available cameras for a rover.
+
+**Parameters:**
+- `rover` (str): Rover name
+
+**Returns:** `List[str]` - List of camera abbreviations
+
+##### `get_available_rovers()`
+
+Get list of available rovers.
+
+**Returns:** `List[str]` - List of rover names
+
 ### Data Models
 
 #### APODResponse
@@ -203,6 +352,65 @@ Represents multiple APOD entries.
 - `__len__()`: Get the number of items
 - `__iter__()`: Iterate over items  
 - `__getitem__(index)`: Get item by index
+
+#### MarsPhoto
+
+Represents a single Mars rover photo.
+
+**Attributes:**
+- `id` (int): Photo ID
+- `sol` (int): Martian sol (day)
+- `camera` (Camera): Camera information
+- `img_src` (str): Image source URL
+- `earth_date` (date): Earth date when photo was taken
+- `rover` (Rover): Rover information
+
+#### MarsPhotosResponse
+
+Represents multiple Mars rover photos.
+
+**Attributes:**
+- `photos` (List[MarsPhoto]): List of Mars photos
+
+**Methods:**
+- `__len__()`: Get the number of photos
+- `__iter__()`: Iterate over photos
+- `__getitem__(index)`: Get photo by index
+
+#### MissionManifest
+
+Represents a Mars rover mission manifest.
+
+**Attributes:**
+- `name` (str): Rover name
+- `landing_date` (date): Landing date on Mars
+- `launch_date` (date): Launch date from Earth
+- `status` (str): Mission status
+- `max_sol` (int): Maximum sol with photos
+- `max_date` (date): Most recent Earth date with photos
+- `total_photos` (int): Total number of photos
+- `photos` (List[ManifestPhoto]): Photo information by sol
+
+#### Camera
+
+Represents camera information.
+
+**Attributes:**
+- `id` (int): Camera ID
+- `name` (str): Camera abbreviation
+- `rover_id` (int): Rover ID
+- `full_name` (str): Full camera name
+
+#### Rover
+
+Represents rover information.
+
+**Attributes:**
+- `id` (int): Rover ID
+- `name` (str): Rover name
+- `landing_date` (date): Landing date on Mars
+- `launch_date` (date): Launch date from Earth
+- `status` (str): Mission status
 
 ## Configuration
 
@@ -286,7 +494,7 @@ mypy pyasan
 ## Roadmap
 
 - [x] APOD API support
-- [ ] Mars Rover Photos API
+- [x] Mars Rover Photos API
 - [ ] Earth Polychromatic Imaging Camera (EPIC) API  
 - [ ] Near Earth Object Web Service (NeoWs)
 - [ ] Exoplanet Archive API

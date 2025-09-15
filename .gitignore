@@ -128,6 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Ruff
+.ruff_cache/
+
 # IDE
 .vscode/
 .idea/
@@ -143,3 +146,47 @@ dmypy.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Project specific
+# Temporary example/test files (but keep main example.py and mars_example.py)
+temp_*.py
+scratch*.py
+test_example*.py
+debug_*.py
+
+# API keys and secrets (just in case)
+.env.local
+.env.production
+.env.development
+secrets.json
+api_keys.txt
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Coverage reports (additional formats)
+coverage.json
+.coverage.*
+htmlcov/
+
+# Documentation builds
+docs/build/
+docs/_build/
+site/
+
+# Local development
+.local/
+local/
+
+# Python wheels built locally
+*.whl
+
+# macOS specific
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent

@@ -23,8 +23,8 @@ class Config:
         
         self._api_key = api_key or self._get_api_key_from_env()
         self.base_url = "https://api.nasa.gov"
-        self.timeout = 30
-        self.max_retries = 3
+        self.timeout = 15  # Reduced timeout to prevent hanging
+        self.max_retries = 2  # Reduced retries for faster failure
     
     def _get_api_key_from_env(self) -> str:
         """Get API key from environment variables."""
