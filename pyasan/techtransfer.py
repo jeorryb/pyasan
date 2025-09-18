@@ -13,7 +13,7 @@ from .techtransfer_models import (
     TechTransferCategory,
     TechTransferPatent,
     TechTransferSoftware,
-    TechTransferSpinoff
+    TechTransferSpinoff,
 )
 
 
@@ -32,9 +32,7 @@ class TechTransferClient(NASAClient):
         # TechTransfer API uses a different base URL
         self.techtransfer_base_url = "https://technology.nasa.gov/api"
 
-    def _make_techtransfer_request(
-        self, endpoint: str
-    ) -> Dict[str, Any]:
+    def _make_techtransfer_request(self, endpoint: str) -> Dict[str, Any]:
         """
         Make a request to the TechTransfer API.
 
@@ -56,6 +54,7 @@ class TechTransferClient(NASAClient):
 
             if not response.ok:
                 from .exceptions import APIError
+
                 raise APIError(
                     f"TechTransfer API request failed with status "
                     f"{response.status_code}: {response.text}",
@@ -66,15 +65,13 @@ class TechTransferClient(NASAClient):
 
         except Exception as e:
             from .exceptions import APIError
+
             if isinstance(e, APIError):
                 raise
             raise APIError(f"TechTransfer request failed: {str(e)}")
 
     def search_patents(
-        self,
-        query: str,
-        limit: Optional[int] = None,
-        page: Optional[int] = None
+        self, query: str, limit: Optional[int] = None, page: Optional[int] = None
     ) -> TechTransferPatentResponse:
         """
         Search NASA patents.
@@ -118,15 +115,15 @@ class TechTransferClient(NASAClient):
                             case_number=item[1] if len(item) > 1 else None,
                             title=(
                                 item[2]
-                                .replace('<span class="highlight">', '')
-                                .replace('</span>', '')
+                                .replace('<span class="highlight">', "")
+                                .replace("</span>", "")
                                 if len(item) > 2
                                 else ""
                             ),
                             abstract=(
                                 item[3]
-                                .replace('<span class="highlight">', '')
-                                .replace('</span>', '')
+                                .replace('<span class="highlight">', "")
+                                .replace("</span>", "")
                                 if len(item) > 3
                                 else None
                             ),
@@ -144,17 +141,12 @@ class TechTransferClient(NASAClient):
             if limit and len(patents) > limit:
                 patents = patents[:limit]
 
-            return TechTransferPatentResponse(
-                results=patents, count=len(patents)
-            )
+            return TechTransferPatentResponse(results=patents, count=len(patents))
         else:
             return TechTransferPatentResponse(results=[], count=0)
 
     def search_software(
-        self,
-        query: str,
-        limit: Optional[int] = None,
-        page: Optional[int] = None
+        self, query: str, limit: Optional[int] = None, page: Optional[int] = None
     ) -> TechTransferSoftwareResponse:
         """
         Search NASA software.
@@ -198,15 +190,15 @@ class TechTransferClient(NASAClient):
                             case_number=item[1] if len(item) > 1 else None,
                             title=(
                                 item[2]
-                                .replace('<span class="highlight">', '')
-                                .replace('</span>', '')
+                                .replace('<span class="highlight">', "")
+                                .replace("</span>", "")
                                 if len(item) > 2
                                 else ""
                             ),
                             description=(
                                 item[3]
-                                .replace('<span class="highlight">', '')
-                                .replace('</span>', '')
+                                .replace('<span class="highlight">', "")
+                                .replace("</span>", "")
                                 if len(item) > 3
                                 else None
                             ),
@@ -233,10 +225,7 @@ class TechTransferClient(NASAClient):
             return TechTransferSoftwareResponse(results=[], count=0)
 
     def search_spinoffs(
-        self,
-        query: str,
-        limit: Optional[int] = None,
-        page: Optional[int] = None
+        self, query: str, limit: Optional[int] = None, page: Optional[int] = None
     ) -> TechTransferSpinoffResponse:
         """
         Search NASA spinoff technologies.
@@ -280,15 +269,15 @@ class TechTransferClient(NASAClient):
                             case_number=item[1] if len(item) > 1 else None,
                             title=(
                                 item[2]
-                                .replace('<span class="highlight">', '')
-                                .replace('</span>', '')
+                                .replace('<span class="highlight">', "")
+                                .replace("</span>", "")
                                 if len(item) > 2
                                 else ""
                             ),
                             description=(
                                 item[3]
-                                .replace('<span class="highlight">', '')
-                                .replace('</span>', '')
+                                .replace('<span class="highlight">', "")
+                                .replace("</span>", "")
                                 if len(item) > 3
                                 else None
                             ),
@@ -308,9 +297,7 @@ class TechTransferClient(NASAClient):
             if limit and len(spinoffs) > limit:
                 spinoffs = spinoffs[:limit]
 
-            return TechTransferSpinoffResponse(
-                results=spinoffs, count=len(spinoffs)
-            )
+            return TechTransferSpinoffResponse(results=spinoffs, count=len(spinoffs))
         else:
             return TechTransferSpinoffResponse(results=[], count=0)
 
@@ -319,7 +306,7 @@ class TechTransferClient(NASAClient):
         query: str,
         category: Optional[Union[str, TechTransferCategory]] = None,
         limit: Optional[int] = None,
-        page: Optional[int] = None
+        page: Optional[int] = None,
     ) -> Dict[
         str,
         Union[
@@ -370,17 +357,11 @@ class TechTransferClient(NASAClient):
         for cat in categories:
             try:
                 if cat == TechTransferCategory.PATENT:
-                    results["patents"] = self.search_patents(
-                        query, limit, page
-                    )
+                    results["patents"] = self.search_patents(query, limit, page)
                 elif cat == TechTransferCategory.SOFTWARE:
-                    results["software"] = self.search_software(
-                        query, limit, page
-                    )
+                    results["software"] = self.search_software(query, limit, page)
                 elif cat == TechTransferCategory.SPINOFF:
-                    results["spinoffs"] = self.search_spinoffs(
-                        query, limit, page
-                    )
+                    results["spinoffs"] = self.search_spinoffs(query, limit, page)
             except Exception as e:
                 # Continue with other categories if one fails
                 results[f"{cat.value}_error"] = str(e)

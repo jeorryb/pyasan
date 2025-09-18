@@ -174,7 +174,7 @@ def print_techtransfer_patent(
     title_panel = Panel(
         title_text,
         title=f"Patent - {patent.patent_number or 'N/A'}",
-        border_style="blue"
+        border_style="blue",
     )
     console.print(title_panel)
 
@@ -216,7 +216,7 @@ def print_techtransfer_software(
     title_panel = Panel(
         title_text,
         title=f"Software - {software.version or 'N/A'}",
-        border_style="green"
+        border_style="green",
     )
     console.print(title_panel)
 
@@ -247,7 +247,7 @@ def print_techtransfer_software(
                 software.description,
                 title="Description",
                 border_style="green",
-                padding=(1, 2)
+                padding=(1, 2),
             )
             console.print(description_panel)
 
@@ -261,7 +261,7 @@ def print_techtransfer_spinoff(
     title_panel = Panel(
         title_text,
         title=f"Spinoff - {spinoff.publication_year or 'N/A'}",
-        border_style="magenta"
+        border_style="magenta",
     )
     console.print(title_panel)
 
@@ -290,7 +290,7 @@ def print_techtransfer_spinoff(
                 spinoff.description,
                 title="Description",
                 border_style="magenta",
-                padding=(1, 2)
+                padding=(1, 2),
             )
             console.print(description_panel)
 
@@ -300,7 +300,7 @@ def print_techtransfer_spinoff(
                 spinoff.benefits,
                 title="Benefits",
                 border_style="yellow",
-                padding=(1, 2)
+                padding=(1, 2),
             )
             console.print(benefits_panel)
 
@@ -313,9 +313,7 @@ def print_techtransfer_patents(
         console.print("[yellow]No patents found for the specified query.[/yellow]")
         return
 
-    console.print(
-        f"\\n[bold blue]Found {len(patents)} patent(s)[/bold blue]\\n"
-    )
+    console.print(f"\\n[bold blue]Found {len(patents)} patent(s)[/bold blue]\\n")
 
     for i, patent in enumerate(patents):
         if i > 0:
@@ -994,7 +992,7 @@ def techtransfer_spinoffs(
     "--category",
     "-c",
     type=click.Choice(["patent", "software", "spinoff"], case_sensitive=False),
-    help="Search specific category only"
+    help="Search specific category only",
 )
 @click.option(
     "--limit", "-l", type=int, help="Maximum number of results per category (1-100)"
@@ -1040,17 +1038,11 @@ def techtransfer_search(
                 continue
 
             if category_name == "patents":
-                print_techtransfer_patents(
-                    response, show_details=not no_details
-                )
+                print_techtransfer_patents(response, show_details=not no_details)
             elif category_name == "software":
-                print_techtransfer_software_list(
-                    response, show_details=not no_details
-                )
+                print_techtransfer_software_list(response, show_details=not no_details)
             elif category_name == "spinoffs":
-                print_techtransfer_spinoffs(
-                    response, show_details=not no_details
-                )
+                print_techtransfer_spinoffs(response, show_details=not no_details)
 
             # Add separator if there are more categories to show
             remaining_categories = [
