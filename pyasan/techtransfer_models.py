@@ -8,15 +8,15 @@ from enum import Enum
 
 class TechTransferCategory(str, Enum):
     """Categories for TechTransfer API endpoints."""
-    
+
     PATENT = "patent"
-    SOFTWARE = "software" 
+    SOFTWARE = "software"
     SPINOFF = "spinoff"
 
 
 class TechTransferPatent(BaseModel):
     """Model for TechTransfer Patent response."""
-    
+
     id: Optional[str] = Field(None, description="Patent ID")
     title: str = Field(..., description="Patent title")
     abstract: Optional[str] = Field(None, description="Patent abstract")
@@ -27,7 +27,7 @@ class TechTransferPatent(BaseModel):
     center: Optional[str] = Field(None, description="NASA center")
     innovator: Optional[str] = Field(None, description="Inventor/innovator")
     contact: Optional[str] = Field(None, description="Contact information")
-    
+
     @field_validator("publication_date", mode="before")
     @classmethod
     def parse_date(cls, v: Any) -> Optional[date_type]:
@@ -48,7 +48,7 @@ class TechTransferPatent(BaseModel):
 
 class TechTransferSoftware(BaseModel):
     """Model for TechTransfer Software response."""
-    
+
     id: Optional[str] = Field(None, description="Software ID")
     title: str = Field(..., description="Software title")
     description: Optional[str] = Field(None, description="Software description")
@@ -59,7 +59,7 @@ class TechTransferSoftware(BaseModel):
     language: Optional[str] = Field(None, description="Programming language")
     license: Optional[str] = Field(None, description="License information")
     contact: Optional[str] = Field(None, description="Contact information")
-    
+
     @field_validator("release_date", mode="before")
     @classmethod
     def parse_date(cls, v: Any) -> Optional[date_type]:
@@ -79,7 +79,7 @@ class TechTransferSoftware(BaseModel):
 
 class TechTransferSpinoff(BaseModel):
     """Model for TechTransfer Spinoff response."""
-    
+
     id: Optional[str] = Field(None, description="Spinoff ID")
     title: str = Field(..., description="Spinoff title")
     description: Optional[str] = Field(None, description="Spinoff description")
@@ -90,7 +90,7 @@ class TechTransferSpinoff(BaseModel):
     state: Optional[str] = Field(None, description="State")
     benefits: Optional[str] = Field(None, description="Benefits description")
     applications: Optional[str] = Field(None, description="Applications")
-    
+
     @field_validator("publication_year", mode="before")
     @classmethod
     def parse_year(cls, v: Any) -> Optional[int]:
@@ -107,39 +107,41 @@ class TechTransferSpinoff(BaseModel):
 
 class TechTransferResponse(BaseModel):
     """Base model for TechTransfer API responses."""
-    
-    results: List[Union[TechTransferPatent, TechTransferSoftware, TechTransferSpinoff]] = Field(
-        ..., description="List of technology transfer items"
-    )
+
+    results: List[
+        Union[TechTransferPatent, TechTransferSoftware, TechTransferSpinoff]
+    ] = Field(..., description="List of technology transfer items")
     count: Optional[int] = Field(None, description="Total number of results")
-    
+
     def __len__(self) -> int:
         """Get the number of results."""
         return len(self.results)
-    
+
     def __iter__(self) -> Any:
         """Iterate over results."""
         return iter(self.results)
-    
-    def __getitem__(self, index: int) -> Union[TechTransferPatent, TechTransferSoftware, TechTransferSpinoff]:
+
+    def __getitem__(
+        self, index: int
+    ) -> Union[TechTransferPatent, TechTransferSoftware, TechTransferSpinoff]:
         """Get result by index."""
         return self.results[index]
 
 
 class TechTransferPatentResponse(BaseModel):
     """Model for Patent API responses."""
-    
+
     results: List[TechTransferPatent] = Field(..., description="List of patents")
     count: Optional[int] = Field(None, description="Total number of results")
-    
+
     def __len__(self) -> int:
         """Get the number of patents."""
         return len(self.results)
-    
+
     def __iter__(self) -> Any:
         """Iterate over patents."""
         return iter(self.results)
-    
+
     def __getitem__(self, index: int) -> TechTransferPatent:
         """Get patent by index."""
         return self.results[index]
@@ -147,18 +149,18 @@ class TechTransferPatentResponse(BaseModel):
 
 class TechTransferSoftwareResponse(BaseModel):
     """Model for Software API responses."""
-    
+
     results: List[TechTransferSoftware] = Field(..., description="List of software")
     count: Optional[int] = Field(None, description="Total number of results")
-    
+
     def __len__(self) -> int:
         """Get the number of software items."""
         return len(self.results)
-    
+
     def __iter__(self) -> Any:
         """Iterate over software items."""
         return iter(self.results)
-    
+
     def __getitem__(self, index: int) -> TechTransferSoftware:
         """Get software by index."""
         return self.results[index]
@@ -166,18 +168,18 @@ class TechTransferSoftwareResponse(BaseModel):
 
 class TechTransferSpinoffResponse(BaseModel):
     """Model for Spinoff API responses."""
-    
+
     results: List[TechTransferSpinoff] = Field(..., description="List of spinoffs")
     count: Optional[int] = Field(None, description="Total number of results")
-    
+
     def __len__(self) -> int:
         """Get the number of spinoffs."""
         return len(self.results)
-    
+
     def __iter__(self) -> Any:
         """Iterate over spinoffs."""
         return iter(self.results)
-    
+
     def __getitem__(self, index: int) -> TechTransferSpinoff:
         """Get spinoff by index."""
         return self.results[index]

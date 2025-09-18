@@ -1,6 +1,6 @@
 """NASA TechTransfer API client."""
 
-from typing import Optional, Union, Dict, Any
+from typing import Optional, Union, Dict, Any, List
 from urllib.parse import quote_plus
 
 from .client import NASAClient
@@ -8,7 +8,7 @@ from .config import Config
 from .exceptions import ValidationError
 from .techtransfer_models import (
     TechTransferPatentResponse,
-    TechTransferSoftwareResponse, 
+    TechTransferSoftwareResponse,
     TechTransferSpinoffResponse,
     TechTransferCategory,
     TechTransferPatent,
@@ -32,7 +32,9 @@ class TechTransferClient(NASAClient):
         # TechTransfer API uses a different base URL
         self.techtransfer_base_url = "https://technology.nasa.gov/api"
 
-    def _make_techtransfer_request(self, endpoint: str) -> Dict[str, Any]:
+    def _make_techtransfer_request(
+        self, endpoint: str
+    ) -> Dict[str, Any]:
         """
         Make a request to the TechTransfer API.
 
@@ -55,8 +57,8 @@ class TechTransferClient(NASAClient):
             if not response.ok:
                 from .exceptions import APIError
                 raise APIError(
-                    f"TechTransfer API request failed with status {response.status_code}: "
-                    f"{response.text}",
+                    f"TechTransfer API request failed with status "
+                    f"{response.status_code}: {response.text}",
                     status_code=response.status_code,
                 )
 
@@ -95,18 +97,16 @@ class TechTransferClient(NASAClient):
         # TechTransfer API uses URL path for query, not parameters
         query_encoded = quote_plus(query.strip())
         endpoint = f"/query/patent/{query_encoded}"
-        
         try:
             response_data = self._make_techtransfer_request(endpoint)
-        except Exception as e:
+        except Exception:
             # If API call fails, return empty response
             return TechTransferPatentResponse(results=[], count=0)
-        
+
         # Handle TechTransfer API response format
         if isinstance(response_data, dict) and "results" in response_data:
             results_array = response_data["results"]
-            count = response_data.get("count", len(results_array))
-            
+
             # Parse TechTransfer API array format into patent objects
             patents = []
             for item in results_array:
@@ -116,8 +116,20 @@ class TechTransferClient(NASAClient):
                         patent = TechTransferPatent(
                             id=item[0] if len(item) > 0 else None,
                             case_number=item[1] if len(item) > 1 else None,
-                            title=item[2].replace('<span class="highlight">', '').replace('</span>', '') if len(item) > 2 else "",
-                            abstract=item[3].replace('<span class="highlight">', '').replace('</span>', '') if len(item) > 3 else None,
+                            title=(
+                                item[2]
+                                .replace('<span class="highlight">', '')
+                                .replace('</span>', '')
+                                if len(item) > 2
+                                else ""
+                            ),
+                            abstract=(
+                                item[3]
+                                .replace('<span class="highlight">', '')
+                                .replace('</span>', '')
+                                if len(item) > 3
+                                else None
+                            ),
                             patent_number=item[4] if len(item) > 4 else None,
                             category=item[5] if len(item) > 5 else None,
                             center=item[9] if len(item) > 9 else None,
@@ -127,12 +139,14 @@ class TechTransferClient(NASAClient):
                     except Exception:
                         # Skip items that can't be parsed
                         continue
-                        
+
             # Apply limit if specified
             if limit and len(patents) > limit:
                 patents = patents[:limit]
-            
-            return TechTransferPatentResponse(results=patents, count=len(patents))
+
+            return TechTransferPatentResponse(
+                results=patents, count=len(patents)
+            )
         else:
             return TechTransferPatentResponse(results=[], count=0)
 
@@ -163,29 +177,39 @@ class TechTransferClient(NASAClient):
         # TechTransfer API uses URL path for query, not parameters
         query_encoded = quote_plus(query.strip())
         endpoint = f"/query/software/{query_encoded}"
-        
         try:
             response_data = self._make_techtransfer_request(endpoint)
-        except Exception as e:
+        except Exception:
             # If API call fails, return empty response
             return TechTransferSoftwareResponse(results=[], count=0)
-        
+
         # Handle TechTransfer API response format
         if isinstance(response_data, dict) and "results" in response_data:
             results_array = response_data["results"]
-            count = response_data.get("count", len(results_array))
-            
+
             # Parse TechTransfer API array format into software objects
             software_items = []
             for item in results_array:
                 if isinstance(item, list) and len(item) >= 10:
                     try:
-                        # TechTransfer API returns arrays with specific indices for software
+                        # TechTransfer API returns arrays with indices
                         software = TechTransferSoftware(
                             id=item[0] if len(item) > 0 else None,
                             case_number=item[1] if len(item) > 1 else None,
-                            title=item[2].replace('<span class="highlight">', '').replace('</span>', '') if len(item) > 2 else "",
-                            description=item[3].replace('<span class="highlight">', '').replace('</span>', '') if len(item) > 3 else None,
+                            title=(
+                                item[2]
+                                .replace('<span class="highlight">', '')
+                                .replace('</span>', '')
+                                if len(item) > 2
+                                else ""
+                            ),
+                            description=(
+                                item[3]
+                                .replace('<span class="highlight">', '')
+                                .replace('</span>', '')
+                                if len(item) > 3
+                                else None
+                            ),
                             version=item[4] if len(item) > 4 else None,
                             category=item[5] if len(item) > 5 else None,
                             license=item[6] if len(item) > 6 else None,
@@ -197,12 +221,14 @@ class TechTransferClient(NASAClient):
                     except Exception:
                         # Skip items that can't be parsed
                         continue
-                        
+
             # Apply limit if specified
             if limit and len(software_items) > limit:
                 software_items = software_items[:limit]
-            
-            return TechTransferSoftwareResponse(results=software_items, count=len(software_items))
+
+            return TechTransferSoftwareResponse(
+                results=software_items, count=len(software_items)
+            )
         else:
             return TechTransferSoftwareResponse(results=[], count=0)
 
@@ -233,46 +259,58 @@ class TechTransferClient(NASAClient):
         # TechTransfer API uses URL path for query, not parameters
         query_encoded = quote_plus(query.strip())
         endpoint = f"/query/spinoff/{query_encoded}"
-        
         try:
             response_data = self._make_techtransfer_request(endpoint)
-        except Exception as e:
+        except Exception:
             # If API call fails, return empty response
             return TechTransferSpinoffResponse(results=[], count=0)
-        
+
         # Handle TechTransfer API response format
         if isinstance(response_data, dict) and "results" in response_data:
             results_array = response_data["results"]
-            count = response_data.get("count", len(results_array))
-            
+
             # Parse TechTransfer API array format into spinoff objects
             spinoffs = []
             for item in results_array:
                 if isinstance(item, list) and len(item) >= 10:
                     try:
-                        # TechTransfer API returns arrays with specific indices for spinoffs
+                        # TechTransfer API returns arrays with indices
                         spinoff = TechTransferSpinoff(
                             id=item[0] if len(item) > 0 else None,
                             case_number=item[1] if len(item) > 1 else None,
-                            title=item[2].replace('<span class="highlight">', '').replace('</span>', '') if len(item) > 2 else "",
-                            description=item[3].replace('<span class="highlight">', '').replace('</span>', '') if len(item) > 3 else None,
+                            title=(
+                                item[2]
+                                .replace('<span class="highlight">', '')
+                                .replace('</span>', '')
+                                if len(item) > 2
+                                else ""
+                            ),
+                            description=(
+                                item[3]
+                                .replace('<span class="highlight">', '')
+                                .replace('</span>', '')
+                                if len(item) > 3
+                                else None
+                            ),
                             # item[4] appears to be another ID or empty
                             category=item[5] if len(item) > 5 else None,
                             # item[6-8] appear to be empty or additional fields
                             center=item[9] if len(item) > 9 else None,
-                            # Try to extract publication year from the description or other fields
-                            publication_year=None,  # Could be parsed from description if available
+                            # Try to extract publication year from description
+                            publication_year=None,
                         )
                         spinoffs.append(spinoff)
                     except Exception:
                         # Skip items that can't be parsed
                         continue
-                        
+
             # Apply limit if specified
             if limit and len(spinoffs) > limit:
                 spinoffs = spinoffs[:limit]
-            
-            return TechTransferSpinoffResponse(results=spinoffs, count=len(spinoffs))
+
+            return TechTransferSpinoffResponse(
+                results=spinoffs, count=len(spinoffs)
+            )
         else:
             return TechTransferSpinoffResponse(results=[], count=0)
 
@@ -282,18 +320,27 @@ class TechTransferClient(NASAClient):
         category: Optional[Union[str, TechTransferCategory]] = None,
         limit: Optional[int] = None,
         page: Optional[int] = None
-    ) -> Dict[str, Union[TechTransferPatentResponse, TechTransferSoftwareResponse, TechTransferSpinoffResponse]]:
+    ) -> Dict[
+        str,
+        Union[
+            TechTransferPatentResponse,
+            TechTransferSoftwareResponse,
+            TechTransferSpinoffResponse,
+        ],
+    ]:
         """
         Search across all TechTransfer categories or a specific category.
 
         Args:
             query: Search query string
-            category: Specific category to search (patent, software, spinoff). If None, searches all.
+            category: Specific category to search (patent, software, spinoff).
+                If None, searches all.
             limit: Maximum number of results per category
             page: Page number for pagination
 
         Returns:
-            Dictionary with category names as keys and response objects as values
+            Dictionary with category names as keys and response objects as
+            values
 
         Raises:
             ValidationError: If parameters are invalid
@@ -303,7 +350,7 @@ class TechTransferClient(NASAClient):
             raise ValidationError("Query cannot be empty")
 
         results = {}
-        
+
         # Determine which categories to search
         if category is not None:
             if isinstance(category, str):
@@ -312,7 +359,8 @@ class TechTransferClient(NASAClient):
                 except ValueError:
                     valid_categories = [c.value for c in TechTransferCategory]
                     raise ValidationError(
-                        f"Invalid category '{category}'. Valid categories: {', '.join(valid_categories)}"
+                        f"Invalid category '{category}'. "
+                        f"Valid categories: {', '.join(valid_categories)}"
                     )
             categories = [category]
         else:
@@ -322,18 +370,24 @@ class TechTransferClient(NASAClient):
         for cat in categories:
             try:
                 if cat == TechTransferCategory.PATENT:
-                    results["patents"] = self.search_patents(query, limit, page)
+                    results["patents"] = self.search_patents(
+                        query, limit, page
+                    )
                 elif cat == TechTransferCategory.SOFTWARE:
-                    results["software"] = self.search_software(query, limit, page)
+                    results["software"] = self.search_software(
+                        query, limit, page
+                    )
                 elif cat == TechTransferCategory.SPINOFF:
-                    results["spinoffs"] = self.search_spinoffs(query, limit, page)
+                    results["spinoffs"] = self.search_spinoffs(
+                        query, limit, page
+                    )
             except Exception as e:
                 # Continue with other categories if one fails
                 results[f"{cat.value}_error"] = str(e)
 
         return results
 
-    def get_categories(self) -> list[str]:
+    def get_categories(self) -> List[str]:
         """
         Get list of available TechTransfer categories.
 

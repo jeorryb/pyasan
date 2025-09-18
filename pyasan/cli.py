@@ -165,13 +165,15 @@ def print_manifest(manifest_response: ManifestResponse) -> None:
     console.print(sols_table)
 
 
-def print_techtransfer_patent(patent: TechTransferPatent, show_details: bool = True) -> None:
+def print_techtransfer_patent(
+    patent: TechTransferPatent, show_details: bool = True
+) -> None:
     """Print TechTransfer patent information in a formatted way."""
     # Create title panel
     title_text = Text(patent.title, style="bold blue")
     title_panel = Panel(
-        title_text, 
-        title=f"Patent - {patent.patent_number or 'N/A'}", 
+        title_text,
+        title=f"Patent - {patent.patent_number or 'N/A'}",
         border_style="blue"
     )
     console.print(title_panel)
@@ -205,13 +207,15 @@ def print_techtransfer_patent(patent: TechTransferPatent, show_details: bool = T
             console.print(abstract_panel)
 
 
-def print_techtransfer_software(software: TechTransferSoftware, show_details: bool = True) -> None:
+def print_techtransfer_software(
+    software: TechTransferSoftware, show_details: bool = True
+) -> None:
     """Print TechTransfer software information in a formatted way."""
     # Create title panel
     title_text = Text(software.title, style="bold green")
     title_panel = Panel(
-        title_text, 
-        title=f"Software - {software.version or 'N/A'}", 
+        title_text,
+        title=f"Software - {software.version or 'N/A'}",
         border_style="green"
     )
     console.print(title_panel)
@@ -240,18 +244,23 @@ def print_techtransfer_software(software: TechTransferSoftware, show_details: bo
         if software.description:
             console.print()
             description_panel = Panel(
-                software.description, title="Description", border_style="green", padding=(1, 2)
+                software.description,
+                title="Description",
+                border_style="green",
+                padding=(1, 2)
             )
             console.print(description_panel)
 
 
-def print_techtransfer_spinoff(spinoff: TechTransferSpinoff, show_details: bool = True) -> None:
+def print_techtransfer_spinoff(
+    spinoff: TechTransferSpinoff, show_details: bool = True
+) -> None:
     """Print TechTransfer spinoff information in a formatted way."""
     # Create title panel
     title_text = Text(spinoff.title, style="bold magenta")
     title_panel = Panel(
-        title_text, 
-        title=f"Spinoff - {spinoff.publication_year or 'N/A'}", 
+        title_text,
+        title=f"Spinoff - {spinoff.publication_year or 'N/A'}",
         border_style="magenta"
     )
     console.print(title_panel)
@@ -278,25 +287,35 @@ def print_techtransfer_spinoff(spinoff: TechTransferSpinoff, show_details: bool 
         if spinoff.description:
             console.print()
             description_panel = Panel(
-                spinoff.description, title="Description", border_style="magenta", padding=(1, 2)
+                spinoff.description,
+                title="Description",
+                border_style="magenta",
+                padding=(1, 2)
             )
             console.print(description_panel)
 
         if spinoff.benefits:
             console.print()
             benefits_panel = Panel(
-                spinoff.benefits, title="Benefits", border_style="yellow", padding=(1, 2)
+                spinoff.benefits,
+                title="Benefits",
+                border_style="yellow",
+                padding=(1, 2)
             )
             console.print(benefits_panel)
 
 
-def print_techtransfer_patents(patents: TechTransferPatentResponse, show_details: bool = True) -> None:
+def print_techtransfer_patents(
+    patents: TechTransferPatentResponse, show_details: bool = True
+) -> None:
     """Print multiple TechTransfer patents."""
     if len(patents) == 0:
         console.print("[yellow]No patents found for the specified query.[/yellow]")
         return
 
-    console.print(f"\n[bold blue]Found {len(patents)} patent(s)[/bold blue]\n")
+    console.print(
+        f"\\n[bold blue]Found {len(patents)} patent(s)[/bold blue]\\n"
+    )
 
     for i, patent in enumerate(patents):
         if i > 0:
@@ -304,13 +323,18 @@ def print_techtransfer_patents(patents: TechTransferPatentResponse, show_details
         print_techtransfer_patent(patent, show_details)
 
 
-def print_techtransfer_software_list(software_list: TechTransferSoftwareResponse, show_details: bool = True) -> None:
+def print_techtransfer_software_list(
+    software_list: TechTransferSoftwareResponse, show_details: bool = True
+) -> None:
     """Print multiple TechTransfer software items."""
     if len(software_list) == 0:
         console.print("[yellow]No software found for the specified query.[/yellow]")
         return
 
-    console.print(f"\n[bold green]Found {len(software_list)} software item(s)[/bold green]\n")
+    console.print(
+        f"\\n[bold green]Found {len(software_list)} software item(s)"
+        f"[/bold green]\\n"
+    )
 
     for i, software in enumerate(software_list):
         if i > 0:
@@ -318,13 +342,17 @@ def print_techtransfer_software_list(software_list: TechTransferSoftwareResponse
         print_techtransfer_software(software, show_details)
 
 
-def print_techtransfer_spinoffs(spinoffs: TechTransferSpinoffResponse, show_details: bool = True) -> None:
+def print_techtransfer_spinoffs(
+    spinoffs: TechTransferSpinoffResponse, show_details: bool = True
+) -> None:
     """Print multiple TechTransfer spinoffs."""
     if len(spinoffs) == 0:
         console.print("[yellow]No spinoffs found for the specified query.[/yellow]")
         return
 
-    console.print(f"\n[bold magenta]Found {len(spinoffs)} spinoff(s)[/bold magenta]\n")
+    console.print(
+        f"\\n[bold magenta]Found {len(spinoffs)} spinoff(s)[/bold magenta]\\n"
+    )
 
     for i, spinoff in enumerate(spinoffs):
         if i > 0:
@@ -850,7 +878,7 @@ def techtransfer_patents(
             console=console,
         ) as progress:
             progress.add_task(description="Searching patents...", total=None)
-            
+
             client = TechTransferClient(api_key=api_key)
             patents = client.search_patents(query=query, limit=limit, page=page)
 
@@ -895,7 +923,7 @@ def techtransfer_software(
             console=console,
         ) as progress:
             progress.add_task(description="Searching software...", total=None)
-            
+
             client = TechTransferClient(api_key=api_key)
             software = client.search_software(query=query, limit=limit, page=page)
 
@@ -940,7 +968,7 @@ def techtransfer_spinoffs(
             console=console,
         ) as progress:
             progress.add_task(description="Searching spinoffs...", total=None)
-            
+
             client = TechTransferClient(api_key=api_key)
             spinoffs = client.search_spinoffs(query=query, limit=limit, page=page)
 
@@ -963,12 +991,14 @@ def techtransfer_spinoffs(
 @techtransfer.command("search")
 @click.argument("query")
 @click.option(
-    "--category", 
-    "-c", 
+    "--category",
+    "-c",
     type=click.Choice(["patent", "software", "spinoff"], case_sensitive=False),
     help="Search specific category only"
 )
-@click.option("--limit", "-l", type=int, help="Maximum number of results per category (1-100)")
+@click.option(
+    "--limit", "-l", type=int, help="Maximum number of results per category (1-100)"
+)
 @click.option("--page", "-p", type=int, help="Page number for pagination")
 @click.option("--no-details", is_flag=True, help="Don't show detailed information")
 @click.option(
@@ -991,26 +1021,41 @@ def techtransfer_search(
             TextColumn("[progress.description]{task.description}"),
             console=console,
         ) as progress:
-            progress.add_task(description="Searching technology transfer data...", total=None)
-            
+            progress.add_task(
+                description="Searching technology transfer data...", total=None
+            )
+
             client = TechTransferClient(api_key=api_key)
-            results = client.search_all(query=query, category=category, limit=limit, page=page)
+            results = client.search_all(
+                query=query, category=category, limit=limit, page=page
+            )
 
         # Display results for each category
         for category_name, response in results.items():
             if category_name.endswith("_error"):
-                console.print(f"[red]Error in {category_name.replace('_error', '')}:[/red] {response}")
+                console.print(
+                    f"[red]Error in {category_name.replace('_error', '')}:"
+                    f"[/red] {response}"
+                )
                 continue
-                
+
             if category_name == "patents":
-                print_techtransfer_patents(response, show_details=not no_details)
+                print_techtransfer_patents(
+                    response, show_details=not no_details
+                )
             elif category_name == "software":
-                print_techtransfer_software_list(response, show_details=not no_details)
+                print_techtransfer_software_list(
+                    response, show_details=not no_details
+                )
             elif category_name == "spinoffs":
-                print_techtransfer_spinoffs(response, show_details=not no_details)
-                
+                print_techtransfer_spinoffs(
+                    response, show_details=not no_details
+                )
+
             # Add separator if there are more categories to show
-            remaining_categories = [k for k in results.keys() if not k.endswith("_error")]
+            remaining_categories = [
+                k for k in results.keys() if not k.endswith("_error")
+            ]
             if category_name != remaining_categories[-1]:
                 console.print("\n" + "=" * 100 + "\n")
 
@@ -1035,12 +1080,14 @@ def techtransfer_categories() -> None:
         client = TechTransferClient()
         categories = client.get_categories()
 
-        console.print(f"\n[bold cyan]Available TechTransfer Categories:[/bold cyan]\n")
+        console.print("\n[bold cyan]Available TechTransfer Categories:[/bold cyan]\n")
 
         for category in categories:
             console.print(f"  • {category}")
 
-        console.print("\n[dim]Use these category names with the 'search' command.[/dim]")
+        console.print(
+            "\n[dim]Use these category names with the 'search' command.[/dim]"
+        )
 
     except PyASANError as e:
         console.print(f"[red]Error:[/red] {e}")
