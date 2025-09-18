@@ -1,15 +1,16 @@
 # PyASAN 🚀
 
-A Python wrapper and command-line interface for NASA's REST APIs, starting with the Astronomy Picture of the Day (APOD) API.
+A Python wrapper and command-line interface for NASA's REST APIs, including Astronomy Picture of the Day (APOD), Mars Rover Photos, and TechTransfer APIs.
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## Features
 
-- 🌟 **Easy-to-use Python API** for NASA's APOD and Mars Rover Photos services
+- 🌟 **Easy-to-use Python API** for NASA's APOD, Mars Rover Photos, and TechTransfer services
 - 🖥️ **Beautiful command-line interface** with rich formatting
 - 🔴 **Mars Rover Photos** - Access photos from Perseverance, Curiosity, Opportunity, and Spirit
+- 🔬 **TechTransfer** - Search NASA patents, software, and spinoff technologies
 - 🔑 **Flexible authentication** (API key or environment variables)
 - 📊 **Comprehensive data models** with validation
 - 🛡️ **Robust error handling** and retry logic
@@ -124,6 +125,47 @@ cameras = client.get_rover_cameras("perseverance")
 print(f"Perseverance cameras: {cameras}")
 ```
 
+#### TechTransfer
+
+```python
+from pyasan import TechTransferClient
+
+# Initialize client
+client = TechTransferClient(api_key="your_api_key_here")
+
+# Search patents
+patents = client.search_patents("solar energy", limit=5)
+print(f"Found {len(patents)} patents")
+for patent in patents:
+    print(f"- {patent.title}")
+    if patent.patent_number:
+        print(f"  Patent Number: {patent.patent_number}")
+
+# Search software
+software = client.search_software("machine learning", limit=3)
+for item in software:
+    print(f"- {item.title}")
+    if item.version:
+        print(f"  Version: {item.version}")
+
+# Search spinoff technologies
+spinoffs = client.search_spinoffs("medical", limit=3)
+for spinoff in spinoffs:
+    print(f"- {spinoff.title}")
+    if spinoff.company:
+        print(f"  Company: {spinoff.company}")
+
+# Search all categories at once
+all_results = client.search_all("robotics", limit=2)
+for category, results in all_results.items():
+    if not category.endswith("_error"):
+        print(f"{category}: {len(results)} results")
+
+# Get available categories
+categories = client.get_categories()
+print(f"Available categories: {categories}")
+```
+
 ### Command Line Interface
 
 The CLI provides a beautiful, user-friendly interface to NASA's APIs:
@@ -181,12 +223,41 @@ pyasan mars photos --rover curiosity --sol 1000 --page 2
 pyasan mars photos --rover curiosity --sol 1000 --no-details
 ```
 
+#### TechTransfer Commands
+
+```bash
+# Search NASA patents
+pyasan techtransfer patents "solar energy" --limit 5
+
+# Search NASA software
+pyasan techtransfer software "machine learning" --limit 3
+
+# Search NASA spinoff technologies
+pyasan techtransfer spinoffs "medical devices" --limit 5
+
+# Search across all categories
+pyasan techtransfer search "robotics" --limit 3
+
+# Search specific category only
+pyasan techtransfer search "artificial intelligence" --category software
+
+# Use pagination
+pyasan techtransfer patents "space technology" --page 2 --limit 10
+
+# Hide detailed information
+pyasan techtransfer patents "propulsion" --no-details
+
+# List available categories
+pyasan techtransfer categories
+```
+
 #### Global Options
 
 ```bash
 # Use specific API key for any command
 pyasan apod get --api-key your_api_key_here
 pyasan mars photos --rover curiosity --sol 1000 --api-key your_api_key_here
+pyasan techtransfer patents "space technology" --api-key your_api_key_here
 
 # Show version
 pyasan --version
@@ -412,6 +483,113 @@ Represents rover information.
 - `launch_date` (date): Launch date from Earth
 - `status` (str): Mission status
 
+### TechTransferClient
+
+The main client for interacting with NASA's TechTransfer API.
+
+#### Methods
+
+##### `search_patents(query, limit=None, page=None)`
+
+Search NASA patents by query string.
+
+**Parameters:**
+- `query` (str): Search query string
+- `limit` (int, optional): Maximum number of results (1-100)
+- `page` (int, optional): Page number for pagination
+
+**Returns:** `TechTransferPatentResponse` containing patent results
+
+##### `search_software(query, limit=None, page=None)`
+
+Search NASA software by query string.
+
+**Parameters:**
+- `query` (str): Search query string
+- `limit` (int, optional): Maximum number of results (1-100)
+- `page` (int, optional): Page number for pagination
+
+**Returns:** `TechTransferSoftwareResponse` containing software results
+
+##### `search_spinoffs(query, limit=None, page=None)`
+
+Search NASA spinoff technologies by query string.
+
+**Parameters:**
+- `query` (str): Search query string
+- `limit` (int, optional): Maximum number of results (1-100)
+- `page` (int, optional): Page number for pagination
+
+**Returns:** `TechTransferSpinoffResponse` containing spinoff results
+
+##### `search_all(query, category=None, limit=None, page=None)`
+
+Search across all TechTransfer categories or a specific category.
+
+**Parameters:**
+- `query` (str): Search query string
+- `category` (str, optional): Specific category ('patent', 'software', 'spinoff')
+- `limit` (int, optional): Maximum number of results per category
+- `page` (int, optional): Page number for pagination
+
+**Returns:** Dictionary with category names as keys and response objects as values
+
+##### `get_categories()`
+
+Get list of available TechTransfer categories.
+
+**Returns:** List of category names
+
+#### TechTransfer Data Models
+
+##### TechTransferPatent
+
+Represents a NASA patent.
+
+**Attributes:**
+- `id` (str): Patent ID
+- `title` (str): Patent title
+- `abstract` (str): Patent abstract
+- `patent_number` (str): Patent number
+- `case_number` (str): NASA case number
+- `publication_date` (date): Publication date
+- `category` (str): Technology category
+- `center` (str): NASA center
+- `innovator` (str): Inventor/innovator
+- `contact` (str): Contact information
+
+##### TechTransferSoftware
+
+Represents NASA software.
+
+**Attributes:**
+- `id` (str): Software ID
+- `title` (str): Software title
+- `description` (str): Software description
+- `release_date` (date): Release date
+- `version` (str): Software version
+- `category` (str): Technology category
+- `center` (str): NASA center
+- `language` (str): Programming language
+- `license` (str): License information
+- `contact` (str): Contact information
+
+##### TechTransferSpinoff
+
+Represents a NASA spinoff technology.
+
+**Attributes:**
+- `id` (str): Spinoff ID
+- `title` (str): Spinoff title
+- `description` (str): Spinoff description
+- `publication_year` (int): Publication year
+- `category` (str): Technology category
+- `center` (str): NASA center
+- `company` (str): Company name
+- `state` (str): State
+- `benefits` (str): Benefits description
+- `applications` (str): Applications
+
 ## Configuration
 
 ### Environment Variables
@@ -495,6 +673,7 @@ mypy pyasan
 
 - [x] APOD API support
 - [x] Mars Rover Photos API
+- [x] TechTransfer API support
 - [ ] Earth Polychromatic Imaging Camera (EPIC) API  
 - [ ] Near Earth Object Web Service (NeoWs)
 - [ ] Exoplanet Archive API
@@ -527,6 +706,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [NASA API Portal](https://api.nasa.gov/)
 - [APOD API Documentation](https://api.nasa.gov/planetary/apod)
+- [TechTransfer API Documentation](https://technology.nasa.gov/api/)
 - [PyPI Package](https://pypi.org/project/pyasan/) (when published)
 - [GitHub Repository](https://github.com/yourusername/pyasan)
 

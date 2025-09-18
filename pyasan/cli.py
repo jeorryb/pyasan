@@ -13,9 +13,18 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from . import __version__
 from .apod import APODClient
 from .mars import MarsRoverPhotosClient
+from .techtransfer import TechTransferClient
 from .exceptions import PyASANError, ValidationError, APIError, AuthenticationError
 from .models import APODResponse, APODBatch
 from .mars_models import MarsPhotosResponse, ManifestResponse, MarsPhoto
+from .techtransfer_models import (
+    TechTransferPatentResponse,
+    TechTransferSoftwareResponse,
+    TechTransferSpinoffResponse,
+    TechTransferPatent,
+    TechTransferSoftware,
+    TechTransferSpinoff,
+)
 
 console = Console()
 
@@ -156,6 +165,173 @@ def print_manifest(manifest_response: ManifestResponse) -> None:
     console.print(sols_table)
 
 
+def print_techtransfer_patent(patent: TechTransferPatent, show_details: bool = True) -> None:
+    """Print TechTransfer patent information in a formatted way."""
+    # Create title panel
+    title_text = Text(patent.title, style="bold blue")
+    title_panel = Panel(
+        title_text, 
+        title=f"Patent - {patent.patent_number or 'N/A'}", 
+        border_style="blue"
+    )
+    console.print(title_panel)
+
+    if show_details:
+        # Create info table
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_column("Field", style="cyan", no_wrap=True)
+        table.add_column("Value", style="white")
+
+        if patent.patent_number:
+            table.add_row("Patent Number", patent.patent_number)
+        if patent.case_number:
+            table.add_row("Case Number", patent.case_number)
+        if patent.publication_date:
+            table.add_row("Publication Date", str(patent.publication_date))
+        if patent.category:
+            table.add_row("Category", patent.category)
+        if patent.center:
+            table.add_row("NASA Center", patent.center)
+        if patent.innovator:
+            table.add_row("Innovator", patent.innovator)
+
+        console.print(table)
+
+        if patent.abstract:
+            console.print()
+            abstract_panel = Panel(
+                patent.abstract, title="Abstract", border_style="green", padding=(1, 2)
+            )
+            console.print(abstract_panel)
+
+
+def print_techtransfer_software(software: TechTransferSoftware, show_details: bool = True) -> None:
+    """Print TechTransfer software information in a formatted way."""
+    # Create title panel
+    title_text = Text(software.title, style="bold green")
+    title_panel = Panel(
+        title_text, 
+        title=f"Software - {software.version or 'N/A'}", 
+        border_style="green"
+    )
+    console.print(title_panel)
+
+    if show_details:
+        # Create info table
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_column("Field", style="cyan", no_wrap=True)
+        table.add_column("Value", style="white")
+
+        if software.version:
+            table.add_row("Version", software.version)
+        if software.release_date:
+            table.add_row("Release Date", str(software.release_date))
+        if software.category:
+            table.add_row("Category", software.category)
+        if software.center:
+            table.add_row("NASA Center", software.center)
+        if software.language:
+            table.add_row("Language", software.language)
+        if software.license:
+            table.add_row("License", software.license)
+
+        console.print(table)
+
+        if software.description:
+            console.print()
+            description_panel = Panel(
+                software.description, title="Description", border_style="green", padding=(1, 2)
+            )
+            console.print(description_panel)
+
+
+def print_techtransfer_spinoff(spinoff: TechTransferSpinoff, show_details: bool = True) -> None:
+    """Print TechTransfer spinoff information in a formatted way."""
+    # Create title panel
+    title_text = Text(spinoff.title, style="bold magenta")
+    title_panel = Panel(
+        title_text, 
+        title=f"Spinoff - {spinoff.publication_year or 'N/A'}", 
+        border_style="magenta"
+    )
+    console.print(title_panel)
+
+    if show_details:
+        # Create info table
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_column("Field", style="cyan", no_wrap=True)
+        table.add_column("Value", style="white")
+
+        if spinoff.publication_year:
+            table.add_row("Publication Year", str(spinoff.publication_year))
+        if spinoff.category:
+            table.add_row("Category", spinoff.category)
+        if spinoff.center:
+            table.add_row("NASA Center", spinoff.center)
+        if spinoff.company:
+            table.add_row("Company", spinoff.company)
+        if spinoff.state:
+            table.add_row("State", spinoff.state)
+
+        console.print(table)
+
+        if spinoff.description:
+            console.print()
+            description_panel = Panel(
+                spinoff.description, title="Description", border_style="magenta", padding=(1, 2)
+            )
+            console.print(description_panel)
+
+        if spinoff.benefits:
+            console.print()
+            benefits_panel = Panel(
+                spinoff.benefits, title="Benefits", border_style="yellow", padding=(1, 2)
+            )
+            console.print(benefits_panel)
+
+
+def print_techtransfer_patents(patents: TechTransferPatentResponse, show_details: bool = True) -> None:
+    """Print multiple TechTransfer patents."""
+    if len(patents) == 0:
+        console.print("[yellow]No patents found for the specified query.[/yellow]")
+        return
+
+    console.print(f"\n[bold blue]Found {len(patents)} patent(s)[/bold blue]\n")
+
+    for i, patent in enumerate(patents):
+        if i > 0:
+            console.print("\n" + "─" * 80 + "\n")
+        print_techtransfer_patent(patent, show_details)
+
+
+def print_techtransfer_software_list(software_list: TechTransferSoftwareResponse, show_details: bool = True) -> None:
+    """Print multiple TechTransfer software items."""
+    if len(software_list) == 0:
+        console.print("[yellow]No software found for the specified query.[/yellow]")
+        return
+
+    console.print(f"\n[bold green]Found {len(software_list)} software item(s)[/bold green]\n")
+
+    for i, software in enumerate(software_list):
+        if i > 0:
+            console.print("\n" + "─" * 80 + "\n")
+        print_techtransfer_software(software, show_details)
+
+
+def print_techtransfer_spinoffs(spinoffs: TechTransferSpinoffResponse, show_details: bool = True) -> None:
+    """Print multiple TechTransfer spinoffs."""
+    if len(spinoffs) == 0:
+        console.print("[yellow]No spinoffs found for the specified query.[/yellow]")
+        return
+
+    console.print(f"\n[bold magenta]Found {len(spinoffs)} spinoff(s)[/bold magenta]\n")
+
+    for i, spinoff in enumerate(spinoffs):
+        if i > 0:
+            console.print("\n" + "─" * 80 + "\n")
+        print_techtransfer_spinoff(spinoff, show_details)
+
+
 @click.group(invoke_without_command=True)
 @click.option("--version", is_flag=True, help="Show version information")
 @click.pass_context
@@ -178,6 +354,12 @@ def apod() -> None:
 @main.group()
 def mars() -> None:
     """Mars Rover Photos commands."""
+    pass
+
+
+@main.group()
+def techtransfer() -> None:
+    """NASA TechTransfer API commands."""
     pass
 
 
@@ -640,6 +822,228 @@ def mars_cameras(rover: str) -> None:
         console.print(
             f"[red]Error:[/red] {e}",
         )
+        sys.exit(1)
+
+
+@techtransfer.command("patents")
+@click.argument("query")
+@click.option("--limit", "-l", type=int, help="Maximum number of results (1-100)")
+@click.option("--page", "-p", type=int, help="Page number for pagination")
+@click.option("--no-details", is_flag=True, help="Don't show detailed information")
+@click.option(
+    "--api-key",
+    envvar="NASA_API_KEY",
+    help="NASA API key (can also be set via NASA_API_KEY env var)",
+)
+def techtransfer_patents(
+    query: str,
+    limit: Optional[int],
+    page: Optional[int],
+    no_details: bool,
+    api_key: Optional[str],
+) -> None:
+    """Search NASA patents."""
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            progress.add_task(description="Searching patents...", total=None)
+            
+            client = TechTransferClient(api_key=api_key)
+            patents = client.search_patents(query=query, limit=limit, page=page)
+
+        print_techtransfer_patents(patents, show_details=not no_details)
+
+    except ValidationError as e:
+        console.print(f"[red]Validation Error:[/red] {e}")
+        sys.exit(1)
+    except AuthenticationError as e:
+        console.print(f"[red]Authentication Error:[/red] {e}")
+        sys.exit(1)
+    except APIError as e:
+        console.print(f"[red]API Error:[/red] {e}")
+        sys.exit(1)
+    except PyASANError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        sys.exit(1)
+
+
+@techtransfer.command("software")
+@click.argument("query")
+@click.option("--limit", "-l", type=int, help="Maximum number of results (1-100)")
+@click.option("--page", "-p", type=int, help="Page number for pagination")
+@click.option("--no-details", is_flag=True, help="Don't show detailed information")
+@click.option(
+    "--api-key",
+    envvar="NASA_API_KEY",
+    help="NASA API key (can also be set via NASA_API_KEY env var)",
+)
+def techtransfer_software(
+    query: str,
+    limit: Optional[int],
+    page: Optional[int],
+    no_details: bool,
+    api_key: Optional[str],
+) -> None:
+    """Search NASA software."""
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            progress.add_task(description="Searching software...", total=None)
+            
+            client = TechTransferClient(api_key=api_key)
+            software = client.search_software(query=query, limit=limit, page=page)
+
+        print_techtransfer_software_list(software, show_details=not no_details)
+
+    except ValidationError as e:
+        console.print(f"[red]Validation Error:[/red] {e}")
+        sys.exit(1)
+    except AuthenticationError as e:
+        console.print(f"[red]Authentication Error:[/red] {e}")
+        sys.exit(1)
+    except APIError as e:
+        console.print(f"[red]API Error:[/red] {e}")
+        sys.exit(1)
+    except PyASANError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        sys.exit(1)
+
+
+@techtransfer.command("spinoffs")
+@click.argument("query")
+@click.option("--limit", "-l", type=int, help="Maximum number of results (1-100)")
+@click.option("--page", "-p", type=int, help="Page number for pagination")
+@click.option("--no-details", is_flag=True, help="Don't show detailed information")
+@click.option(
+    "--api-key",
+    envvar="NASA_API_KEY",
+    help="NASA API key (can also be set via NASA_API_KEY env var)",
+)
+def techtransfer_spinoffs(
+    query: str,
+    limit: Optional[int],
+    page: Optional[int],
+    no_details: bool,
+    api_key: Optional[str],
+) -> None:
+    """Search NASA spinoff technologies."""
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            progress.add_task(description="Searching spinoffs...", total=None)
+            
+            client = TechTransferClient(api_key=api_key)
+            spinoffs = client.search_spinoffs(query=query, limit=limit, page=page)
+
+        print_techtransfer_spinoffs(spinoffs, show_details=not no_details)
+
+    except ValidationError as e:
+        console.print(f"[red]Validation Error:[/red] {e}")
+        sys.exit(1)
+    except AuthenticationError as e:
+        console.print(f"[red]Authentication Error:[/red] {e}")
+        sys.exit(1)
+    except APIError as e:
+        console.print(f"[red]API Error:[/red] {e}")
+        sys.exit(1)
+    except PyASANError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        sys.exit(1)
+
+
+@techtransfer.command("search")
+@click.argument("query")
+@click.option(
+    "--category", 
+    "-c", 
+    type=click.Choice(["patent", "software", "spinoff"], case_sensitive=False),
+    help="Search specific category only"
+)
+@click.option("--limit", "-l", type=int, help="Maximum number of results per category (1-100)")
+@click.option("--page", "-p", type=int, help="Page number for pagination")
+@click.option("--no-details", is_flag=True, help="Don't show detailed information")
+@click.option(
+    "--api-key",
+    envvar="NASA_API_KEY",
+    help="NASA API key (can also be set via NASA_API_KEY env var)",
+)
+def techtransfer_search(
+    query: str,
+    category: Optional[str],
+    limit: Optional[int],
+    page: Optional[int],
+    no_details: bool,
+    api_key: Optional[str],
+) -> None:
+    """Search across all TechTransfer categories or a specific category."""
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            progress.add_task(description="Searching technology transfer data...", total=None)
+            
+            client = TechTransferClient(api_key=api_key)
+            results = client.search_all(query=query, category=category, limit=limit, page=page)
+
+        # Display results for each category
+        for category_name, response in results.items():
+            if category_name.endswith("_error"):
+                console.print(f"[red]Error in {category_name.replace('_error', '')}:[/red] {response}")
+                continue
+                
+            if category_name == "patents":
+                print_techtransfer_patents(response, show_details=not no_details)
+            elif category_name == "software":
+                print_techtransfer_software_list(response, show_details=not no_details)
+            elif category_name == "spinoffs":
+                print_techtransfer_spinoffs(response, show_details=not no_details)
+                
+            # Add separator if there are more categories to show
+            remaining_categories = [k for k in results.keys() if not k.endswith("_error")]
+            if category_name != remaining_categories[-1]:
+                console.print("\n" + "=" * 100 + "\n")
+
+    except ValidationError as e:
+        console.print(f"[red]Validation Error:[/red] {e}")
+        sys.exit(1)
+    except AuthenticationError as e:
+        console.print(f"[red]Authentication Error:[/red] {e}")
+        sys.exit(1)
+    except APIError as e:
+        console.print(f"[red]API Error:[/red] {e}")
+        sys.exit(1)
+    except PyASANError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        sys.exit(1)
+
+
+@techtransfer.command("categories")
+def techtransfer_categories() -> None:
+    """List available TechTransfer categories."""
+    try:
+        client = TechTransferClient()
+        categories = client.get_categories()
+
+        console.print(f"\n[bold cyan]Available TechTransfer Categories:[/bold cyan]\n")
+
+        for category in categories:
+            console.print(f"  • {category}")
+
+        console.print("\n[dim]Use these category names with the 'search' command.[/dim]")
+
+    except PyASANError as e:
+        console.print(f"[red]Error:[/red] {e}")
         sys.exit(1)
 
 
