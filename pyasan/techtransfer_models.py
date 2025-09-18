@@ -43,7 +43,10 @@ class TechTransferPatent(BaseModel):
                     continue
             # If no format works, return None
             return None
-        return v
+        if isinstance(v, date_type):
+            return v
+        # If it's not a date and not a string, return None
+        return None
 
 
 class TechTransferSoftware(BaseModel):
@@ -74,7 +77,10 @@ class TechTransferSoftware(BaseModel):
                 except ValueError:
                     continue
             return None
-        return v
+        if isinstance(v, date_type):
+            return v
+        # If it's not a date and not a string, return None
+        return None
 
 
 class TechTransferSpinoff(BaseModel):
@@ -102,7 +108,10 @@ class TechTransferSpinoff(BaseModel):
                 return int(v)
             except ValueError:
                 return None
-        return v
+        if isinstance(v, int):
+            return v
+        # If it's not an int and not a string, return None
+        return None
 
 
 class TechTransferResponse(BaseModel):

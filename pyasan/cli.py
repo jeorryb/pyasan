@@ -1037,11 +1037,17 @@ def techtransfer_search(
                 )
                 continue
 
-            if category_name == "patents":
+            if category_name == "patents" and isinstance(
+                response, TechTransferPatentResponse
+            ):
                 print_techtransfer_patents(response, show_details=not no_details)
-            elif category_name == "software":
+            elif category_name == "software" and isinstance(
+                response, TechTransferSoftwareResponse
+            ):
                 print_techtransfer_software_list(response, show_details=not no_details)
-            elif category_name == "spinoffs":
+            elif category_name == "spinoffs" and isinstance(
+                response, TechTransferSpinoffResponse
+            ):
                 print_techtransfer_spinoffs(response, show_details=not no_details)
 
             # Add separator if there are more categories to show

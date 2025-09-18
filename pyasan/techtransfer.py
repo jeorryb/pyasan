@@ -61,7 +61,8 @@ class TechTransferClient(NASAClient):
                     status_code=response.status_code,
                 )
 
-            return response.json()
+            json_response: Dict[str, Any] = response.json()
+            return json_response
 
         except Exception as e:
             from .exceptions import APIError
@@ -130,7 +131,9 @@ class TechTransferClient(NASAClient):
                             patent_number=item[4] if len(item) > 4 else None,
                             category=item[5] if len(item) > 5 else None,
                             center=item[9] if len(item) > 9 else None,
-                            # Other fields may be available in different positions
+                            publication_date=None,  # Not available in API response
+                            innovator=None,  # Not available in API response
+                            contact=None,  # Not available in API response
                         )
                         patents.append(patent)
                     except Exception:
@@ -187,7 +190,7 @@ class TechTransferClient(NASAClient):
                         # TechTransfer API returns arrays with indices
                         software = TechTransferSoftware(
                             id=item[0] if len(item) > 0 else None,
-                            case_number=item[1] if len(item) > 1 else None,
+                            # case_number not available in TechTransferSoftware model
                             title=(
                                 item[2]
                                 .replace('<span class="highlight">', "")
@@ -208,6 +211,9 @@ class TechTransferClient(NASAClient):
                             # item[7] appears to be empty or additional info
                             # item[8] appears to be a URL or link
                             center=item[9] if len(item) > 9 else None,
+                            release_date=None,  # Not available in API response
+                            language=None,  # Not available in API response
+                            contact=None,  # Not available in API response
                         )
                         software_items.append(software)
                     except Exception:
@@ -266,7 +272,7 @@ class TechTransferClient(NASAClient):
                         # TechTransfer API returns arrays with indices
                         spinoff = TechTransferSpinoff(
                             id=item[0] if len(item) > 0 else None,
-                            case_number=item[1] if len(item) > 1 else None,
+                            # case_number not available in TechTransferSpinoff model
                             title=(
                                 item[2]
                                 .replace('<span class="highlight">', "")
@@ -287,6 +293,10 @@ class TechTransferClient(NASAClient):
                             center=item[9] if len(item) > 9 else None,
                             # Try to extract publication year from description
                             publication_year=None,
+                            company=None,  # Not available in API response
+                            state=None,  # Not available in API response
+                            benefits=None,  # Not available in API response
+                            applications=None,  # Not available in API response
                         )
                         spinoffs.append(spinoff)
                     except Exception:
@@ -313,6 +323,7 @@ class TechTransferClient(NASAClient):
             TechTransferPatentResponse,
             TechTransferSoftwareResponse,
             TechTransferSpinoffResponse,
+            str,  # for error messages
         ],
     ]:
         """
@@ -336,7 +347,15 @@ class TechTransferClient(NASAClient):
         if not query or not query.strip():
             raise ValidationError("Query cannot be empty")
 
-        results = {}
+        results: Dict[
+            str,
+            Union[
+                TechTransferPatentResponse,
+                TechTransferSoftwareResponse,
+                TechTransferSpinoffResponse,
+                str,  # for error messages
+            ],
+        ] = {}
 
         # Determine which categories to search
         if category is not None:
