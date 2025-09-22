@@ -190,3 +190,10 @@ local/
 .Trashes
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
+
+# Instagram automation (private) - only session files and logs
+*instagram_session.json
+instagram_poster.log
+
+# Documentation folder
+docs/

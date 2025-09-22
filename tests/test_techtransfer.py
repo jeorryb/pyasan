@@ -26,6 +26,7 @@ class TestTechTransferClient:
         assert client.config.api_key == "test_key"
         assert client.techtransfer_base_url == "https://technology.nasa.gov/api"
 
+    @patch.dict("os.environ", {}, clear=True)
     def test_init_without_api_key(self):
         """Test client initialization without API key."""
         client = TechTransferClient()

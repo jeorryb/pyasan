@@ -1,0 +1,44 @@
+name: Daily Random APOD Instagram Post
+
+on:
+  schedule:
+    # Run daily at 12:00 PM UTC (adjust timezone as needed)
+    - cron: '0 12 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  post-apod:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install instagrapi pillow  # Instagram posting library
+    
+    - name: Run Instagram APOD poster
+      env:
+        NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+        INSTAGRAM_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
+        INSTAGRAM_PASSWORD: ${{ secrets.INSTAGRAM_PASSWORD }}
+      run: |
+        python scripts/instagram_apod_advanced.py
+    
+    - name: Upload logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: instagram-poster-logs
+        path: |
+          *.log
+          /tmp/apod_*
+        retention-days: 7
