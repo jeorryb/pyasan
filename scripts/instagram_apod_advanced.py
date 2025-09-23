@@ -70,12 +70,27 @@ def setup_instagram_client() -> Optional[Client]:
                 logger.info("✓ Loaded existing Instagram session")
             except Exception as e:
                 logger.warning(f"Failed to load session, creating new one: {e}")
+                try:
+                    client.login(username, password)
+                    client.dump_settings(session_file)
+                    logger.info("✓ Created new Instagram session")
+                except Exception as login_error:
+                    logger.error(f"Login failed: {login_error}")
+                    if "challenge" in str(login_error).lower() or "code" in str(login_error).lower():
+                        logger.error("Instagram requires 2FA verification. This cannot be automated.")
+                        logger.error("Try logging in manually first, or use an app password if available.")
+                    raise
+        else:
+            try:
                 client.login(username, password)
                 client.dump_settings(session_file)
-        else:
-            client.login(username, password)
-            client.dump_settings(session_file)
-            logger.info("✓ Created new Instagram session")
+                logger.info("✓ Created new Instagram session")
+            except Exception as login_error:
+                logger.error(f"Login failed: {login_error}")
+                if "challenge" in str(login_error).lower() or "code" in str(login_error).lower():
+                    logger.error("Instagram requires 2FA verification. This cannot be automated.")
+                    logger.error("Try logging in manually first, or use an app password if available.")
+                raise
 
         return client
 

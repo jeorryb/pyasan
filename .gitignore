@@ -197,3 +197,7 @@ instagram_poster.log
 
 # Documentation folder
 docs/
+
+# Testing and development scripts (keep private)
+examples/find_instagram_id.py
+examples/instagram_graph_api_test.py
