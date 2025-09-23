@@ -126,7 +126,7 @@ class InstagramGraphAPI:
         try:
             url = f"{self.base_url}/{self.instagram_account_id}"
             params = {
-                "fields": "id,username,account_type,media_count",
+                "fields": "id,username,media_count",
                 "access_token": self.access_token,
             }
 
@@ -257,10 +257,9 @@ def main():
         account_info = instagram_client.get_account_info()
         if account_info:
             username = account_info.get("username", "Unknown")
-            account_type = account_info.get("account_type", "Unknown")
             media_count = account_info.get("media_count", 0)
             logger.info(
-                f"✅ Connected to @{username} ({account_type}) with {media_count} posts"
+                f"✅ Connected to @{username} with {media_count} posts"
             )
         else:
             logger.error("❌ Failed to verify Instagram account access")
