@@ -78,6 +78,15 @@ class InstagramGraphAPI:
 
             logger.info("📤 Creating Instagram media object...")
             response = requests.post(media_url, data=media_params, timeout=30)
+            
+            # Log detailed error information if request fails
+            if response.status_code != 200:
+                try:
+                    error_data = response.json()
+                    logger.error(f"❌ API Error Details: {error_data}")
+                except:
+                    logger.error(f"❌ API Error: {response.status_code} - {response.text}")
+            
             response.raise_for_status()
 
             media_data = response.json()
