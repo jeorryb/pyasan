@@ -703,7 +703,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [NASA API Portal](https://api.nasa.gov/)
 - [APOD API Documentation](https://api.nasa.gov/planetary/apod)
 - [TechTransfer API Documentation](https://technology.nasa.gov/api/)
-- [PyPI Package](https://pypi.org/project/pyasan/) (when published)
+- [PyPI Package](https://pypi.org/project/pyasan/)
 - [GitHub Repository](https://github.com/yourusername/pyasan)
 
 ---

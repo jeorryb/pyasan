@@ -41,3 +41,26 @@ jobs:
         path: |
           token_renewal.log
         retention-days: 30
+    
+    - name: Send notification email
+      if: always()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.NOTIFICATION_EMAIL }}
+        password: ${{ secrets.NOTIFICATION_EMAIL_PASSWORD }}
+        subject: "Instagram Token Renewal - ${{ job.status }}"
+        to: ${{ secrets.NOTIFICATION_EMAIL }}
+        from: GitHub Actions <noreply@github.com>
+        body: |
+          Instagram Token Renewal Status: ${{ job.status }}
+          
+          Repository: ${{ github.repository }}
+          Workflow: ${{ github.workflow }}
+          Run ID: ${{ github.run_id }}
+          
+          Check the logs at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          
+          This is an automated message from your Instagram APOD bot.
+        attachments: token_renewal.log
