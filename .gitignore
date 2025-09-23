@@ -194,6 +194,7 @@ local/
 # Instagram automation (private) - session files and logs
 *instagram_session.json
 instagram_poster.log
+token_renewal.log
 
 # Documentation folder
 docs/
