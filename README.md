@@ -4,6 +4,9 @@ A Python wrapper and command-line interface for NASA's REST APIs, including Astr
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![PyPI version](https://badge.fury.io/py/pyasan.svg)](https://badge.fury.io/py/pyasan)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/pyasan)](https://pypi.org/project/pyasan/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyasan)](https://pypi.org/project/pyasan/)
 
 ## Features
 
@@ -19,23 +22,16 @@ A Python wrapper and command-line interface for NASA's REST APIs, including Astr
 
 ## Installation
 
-### From PyPI (when published)
+### From PyPI (Recommended)
 ```bash
 pip install pyasan
 ```
 
-### From Source
+### From Source (Development)
 ```bash
-git clone https://github.com/yourusername/pyasan.git
+git clone https://github.com/jeorryb/pyasan.git
 cd pyasan
 pip install -e .
-```
-
-### Development Installation
-```bash
-git clone https://github.com/yourusername/pyasan.git
-cd pyasan
-pip install -e ".[dev]"
 ```
 
 ## Quick Start
