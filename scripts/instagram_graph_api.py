@@ -332,16 +332,52 @@ def main():
 
         logger.info(f"📝 Caption preview: {caption[:100]}...")
 
-        # Post to Instagram
+        # Post to Instagram with aspect ratio retry
         logger.info("📸 Posting to Instagram via Graph API...")
-        post_id = instagram_client.upload_image(public_image_url, caption)
-
-        if post_id:
-            logger.info("✅ Successfully posted random APOD to Instagram!")
-            logger.info(f"📱 Post ID: {post_id}")
-        else:
-            logger.error("❌ Failed to post to Instagram")
-            sys.exit(1)
+        post_id = None
+        max_posting_attempts = 3
+        
+        for posting_attempt in range(max_posting_attempts):
+            post_id = instagram_client.upload_image(public_image_url, caption)
+            
+            if post_id:
+                logger.info("✅ Successfully posted random APOD to Instagram!")
+                logger.info(f"📱 Post ID: {post_id}")
+                break
+            else:
+                # If posting failed, try a different APOD
+                if posting_attempt < max_posting_attempts - 1:
+                    logger.warning(f"⚠️  Posting attempt {posting_attempt + 1} failed (likely aspect ratio issue)")
+                    logger.info("🔄 Trying with a different random APOD...")
+                    
+                    # Get another random APOD
+                    for retry_attempt in range(max_retries):
+                        apod = apod_client.get_random_apod()
+                        logger.info(f"✓ Retrieved new APOD: {apod.title} ({apod.date})")
+                        
+                        if apod.media_type == "image":
+                            break
+                    
+                    if apod.media_type != "image":
+                        logger.error("❌ Could not find another image APOD")
+                        sys.exit(1)
+                    
+                    # Update image URL and caption for new APOD
+                    public_image_url = apod.hdurl or apod.url
+                    logger.info(f"✅ Using new image URL: {public_image_url}")
+                    
+                    caption = create_instagram_caption(
+                        {
+                            "title": apod.title,
+                            "explanation": apod.explanation or "",
+                            "date": str(apod.date),
+                            "copyright": apod.copyright or "",
+                        }
+                    )
+                    logger.info(f"📝 New caption preview: {caption[:100]}...")
+                else:
+                    logger.error("❌ Failed to post to Instagram after multiple attempts")
+                    sys.exit(1)
 
         # No cleanup needed since we didn't download any files
         logger.info("🧹 No temporary files to clean up")
