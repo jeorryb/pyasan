@@ -11,8 +11,12 @@ import sys
 import json
 import requests
 import logging
+import base64
 from datetime import datetime, timedelta
 from pathlib import Path
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
 
 # Add the pyasan package to the path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -109,24 +113,145 @@ def renew_access_token(app_id: str, app_secret: str, current_token: str) -> str:
         return None
 
 
+def encrypt_secret_for_github(public_key_data: str, secret_value: str) -> str:
+    """Encrypt a secret value using GitHub's public key."""
+    try:
+        # Decode the base64 public key
+        public_key_bytes = base64.b64decode(public_key_data)
+        
+        # Load the public key
+        public_key = load_pem_public_key(public_key_bytes)
+        
+        # Encrypt the secret
+        encrypted_bytes = public_key.encrypt(
+            secret_value.encode('utf-8'),
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        
+        # Return base64 encoded encrypted value
+        return base64.b64encode(encrypted_bytes).decode('utf-8')
+        
+    except Exception as e:
+        logger.error(f"❌ Error encrypting secret: {e}")
+        raise
+
+
+def get_github_public_key(repo_owner: str, repo_name: str, github_token: str) -> tuple:
+    """Get the repository's public key for secret encryption."""
+    try:
+        url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/secrets/public-key"
+        headers = {
+            "Authorization": f"token {github_token}",
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "PyASAN-Token-Renewal/1.0"
+        }
+        
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        data = response.json()
+        return data["key"], data["key_id"]
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting GitHub public key: {e}")
+        raise
+
+
+def update_github_secret_api(repo_owner: str, repo_name: str, secret_name: str, 
+                            secret_value: str, github_token: str) -> bool:
+    """Update a GitHub repository secret via API."""
+    try:
+        logger.info(f"🔐 Updating GitHub secret: {secret_name}")
+        
+        # Get the repository's public key
+        logger.info("📡 Getting repository public key...")
+        public_key, key_id = get_github_public_key(repo_owner, repo_name, github_token)
+        
+        # Encrypt the secret value
+        logger.info("🔒 Encrypting secret value...")
+        encrypted_value = encrypt_secret_for_github(public_key, secret_value)
+        
+        # Update the secret
+        logger.info("📤 Updating repository secret...")
+        url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/secrets/{secret_name}"
+        headers = {
+            "Authorization": f"token {github_token}",
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "PyASAN-Token-Renewal/1.0"
+        }
+        
+        payload = {
+            "encrypted_value": encrypted_value,
+            "key_id": key_id
+        }
+        
+        response = requests.put(url, headers=headers, json=payload, timeout=30)
+        response.raise_for_status()
+        
+        if response.status_code in [201, 204]:
+            logger.info("✅ GitHub secret updated successfully!")
+            return True
+        else:
+            logger.error(f"❌ Unexpected response code: {response.status_code}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ Error updating GitHub secret via API: {e}")
+        return False
+
+
 def update_github_secret(new_token: str) -> bool:
-    """Update GitHub secret with new token (GitHub Actions only)."""
+    """Update GitHub secret with new token."""
     try:
         # Mask the token for security - only show first/last few characters
         masked_token = f"{new_token[:8]}...{new_token[-8:]}" if len(new_token) > 16 else "***MASKED***"
         
-        logger.info("📝 NEW TOKEN GENERATED FOR GITHUB SECRET:")
+        logger.info("📝 UPDATING GITHUB SECRET WITH NEW TOKEN:")
         logger.info("=" * 50)
         logger.info("Secret name: INSTAGRAM_ACCESS_TOKEN")
         logger.info(f"Token preview: {masked_token}")
         logger.info("Token length: {} characters".format(len(new_token)))
         logger.info("=" * 50)
+        
+        # Try automatic update via GitHub API
+        github_token = os.getenv("GITHUB_TOKEN")
+        github_repository = os.getenv("GITHUB_REPOSITORY")  # format: "owner/repo"
+        
+        if github_token and github_repository:
+            logger.info("🤖 Attempting automatic GitHub secret update...")
+            
+            # Parse repository owner and name
+            repo_parts = github_repository.split("/")
+            if len(repo_parts) == 2:
+                repo_owner, repo_name = repo_parts
+                
+                # Update the secret via API
+                success = update_github_secret_api(
+                    repo_owner, repo_name, "INSTAGRAM_ACCESS_TOKEN", 
+                    new_token, github_token
+                )
+                
+                if success:
+                    logger.info("🎉 GitHub secret automatically updated!")
+                    logger.info("🔒 Full token securely encrypted and stored")
+                    return True
+                else:
+                    logger.warning("⚠️  Automatic update failed, falling back to manual process")
+            else:
+                logger.warning(f"⚠️  Invalid GITHUB_REPOSITORY format: {github_repository}")
+        else:
+            logger.info("ℹ️  GitHub API credentials not available, using manual process")
+        
+        # Fallback to manual process
+        logger.info("📝 MANUAL UPDATE REQUIRED:")
         logger.info("🔒 Full token has been generated but not logged for security")
         logger.info("💡 Please update your GitHub secret manually with the new token")
-        logger.info("💡 The full token is available in the renewal response (check API output)")
+        logger.info("💡 The full token is available in the renewal API response above")
         
-        # TODO: Implement automatic GitHub secret update via API
-        # This would securely update the secret without logging it
         return True
         
     except Exception as e:

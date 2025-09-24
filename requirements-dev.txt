@@ -5,3 +5,4 @@ black>=22.0
 flake8>=4.0
 mypy>=0.900
 types-requests>=2.0
+cryptography>=3.0
