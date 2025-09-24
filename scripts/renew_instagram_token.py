@@ -112,16 +112,21 @@ def renew_access_token(app_id: str, app_secret: str, current_token: str) -> str:
 def update_github_secret(new_token: str) -> bool:
     """Update GitHub secret with new token (GitHub Actions only)."""
     try:
-        # This would require GitHub CLI or API calls
-        # For now, just log the new token for manual update
-        logger.info("📝 NEW TOKEN FOR GITHUB SECRET:")
+        # Mask the token for security - only show first/last few characters
+        masked_token = f"{new_token[:8]}...{new_token[-8:]}" if len(new_token) > 16 else "***MASKED***"
+        
+        logger.info("📝 NEW TOKEN GENERATED FOR GITHUB SECRET:")
         logger.info("=" * 50)
         logger.info("Secret name: INSTAGRAM_ACCESS_TOKEN")
-        logger.info(f"New value: {new_token}")
+        logger.info(f"Token preview: {masked_token}")
+        logger.info("Token length: {} characters".format(len(new_token)))
         logger.info("=" * 50)
-        logger.info("💡 Please update your GitHub secret manually with the new token above")
+        logger.info("🔒 Full token has been generated but not logged for security")
+        logger.info("💡 Please update your GitHub secret manually with the new token")
+        logger.info("💡 The full token is available in the renewal response (check API output)")
         
         # TODO: Implement automatic GitHub secret update via API
+        # This would securely update the secret without logging it
         return True
         
     except Exception as e:
