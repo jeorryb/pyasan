@@ -346,10 +346,10 @@ def main():
 
         logger.info(f"📝 Caption preview: {caption[:100]}...")
 
-        # Post to Instagram with aspect ratio retry
+        # Post to Instagram with retry for aspect ratio and other issues
         logger.info("📸 Posting to Instagram via Graph API...")
         post_id = None
-        max_posting_attempts = 7  # Increased to 7 attempts for extremely rare bad luck streaks
+        max_posting_attempts = 3  # Reduced from 7 to 3 - timing fix resolves most issues
         
         for posting_attempt in range(max_posting_attempts):
             logger.info(f"📸 Attempt {posting_attempt + 1}/{max_posting_attempts}: Posting to Instagram...")
@@ -366,7 +366,7 @@ def main():
                     logger.info(f"🔄 Trying with a different random APOD... ({max_posting_attempts - posting_attempt - 1} attempts remaining)")
                     
                     # Brief delay to be respectful to the API
-                    time.sleep(3)  # Increased delay for better reliability
+                    time.sleep(2)  # Reduced from 3s - timing issues now handled by processing delay
                     
                     # Get another random APOD
                     for retry_attempt in range(max_retries):
