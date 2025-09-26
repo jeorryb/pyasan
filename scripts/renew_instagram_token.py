@@ -257,11 +257,21 @@ def update_github_secret(new_token: str) -> bool:
             else:
                 logger.info("ℹ️  GitHub API credentials available but automatic update may require admin permissions")
         
-        # Fallback to manual process
+        # Fallback to manual process - provide token securely
         logger.info("📝 MANUAL UPDATE REQUIRED:")
-        logger.info("🔒 Full token has been generated but not logged for security")
-        logger.info("💡 Please update your GitHub secret manually with the new token")
-        logger.info("💡 The full token is available in the renewal API response above")
+        logger.info("🔒 NEW INSTAGRAM ACCESS TOKEN:")
+        logger.info("=" * 70)
+        logger.info("SECRET NAME: INSTAGRAM_ACCESS_TOKEN")
+        logger.info(f"SECRET VALUE: {new_token}")
+        logger.info("=" * 70)
+        logger.info("📋 INSTRUCTIONS:")
+        logger.info("1. Go to GitHub repository → Settings → Secrets and variables → Actions")
+        logger.info("2. Click 'INSTAGRAM_ACCESS_TOKEN' → Edit")
+        logger.info("3. Replace with the SECRET VALUE shown above")
+        logger.info("4. Click 'Update secret'")
+        logger.info("")
+        logger.info("⚠️  SECURITY: This token is only shown when manual update is required")
+        logger.info("⚠️  The token above expires in ~60 days and will need renewal")
         
         return True
         
