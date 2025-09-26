@@ -18,6 +18,7 @@ Note: No image hosting required - uses NASA's public URLs directly!
 import os
 import sys
 import requests
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -335,9 +336,10 @@ def main():
         # Post to Instagram with aspect ratio retry
         logger.info("📸 Posting to Instagram via Graph API...")
         post_id = None
-        max_posting_attempts = 3
+        max_posting_attempts = 5  # Increased from 3 to 5 attempts
         
         for posting_attempt in range(max_posting_attempts):
+            logger.info(f"📸 Attempt {posting_attempt + 1}/{max_posting_attempts}: Posting to Instagram...")
             post_id = instagram_client.upload_image(public_image_url, caption)
             
             if post_id:
@@ -348,7 +350,10 @@ def main():
                 # If posting failed, try a different APOD
                 if posting_attempt < max_posting_attempts - 1:
                     logger.warning(f"⚠️  Posting attempt {posting_attempt + 1} failed (likely aspect ratio issue)")
-                    logger.info("🔄 Trying with a different random APOD...")
+                    logger.info(f"🔄 Trying with a different random APOD... ({max_posting_attempts - posting_attempt - 1} attempts remaining)")
+                    
+                    # Brief delay to be respectful to the API
+                    time.sleep(2)
                     
                     # Get another random APOD
                     for retry_attempt in range(max_retries):
