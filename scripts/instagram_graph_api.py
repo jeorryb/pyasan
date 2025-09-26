@@ -99,6 +99,10 @@ class InstagramGraphAPI:
 
             logger.info(f"✅ Media object created with ID: {creation_id}")
 
+            # Wait for Instagram to process the media (important for large images)
+            logger.info("⏳ Waiting for Instagram to process the media...")
+            time.sleep(3)  # Give Instagram time to process the media
+
             # Step 2: Publish the media
             publish_url = f"{self.base_url}/{self.instagram_account_id}/media_publish"
             publish_params = {
@@ -358,11 +362,11 @@ def main():
             else:
                 # If posting failed, try a different APOD
                 if posting_attempt < max_posting_attempts - 1:
-                    logger.warning(f"⚠️  Posting attempt {posting_attempt + 1} failed (likely aspect ratio issue)")
+                    logger.warning(f"⚠️  Posting attempt {posting_attempt + 1} failed")
                     logger.info(f"🔄 Trying with a different random APOD... ({max_posting_attempts - posting_attempt - 1} attempts remaining)")
                     
                     # Brief delay to be respectful to the API
-                    time.sleep(2)
+                    time.sleep(3)  # Increased delay for better reliability
                     
                     # Get another random APOD
                     for retry_attempt in range(max_retries):
