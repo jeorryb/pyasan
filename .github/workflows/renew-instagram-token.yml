@@ -12,7 +12,9 @@ jobs:
     permissions:
       contents: read
       actions: write
-      secrets: write
+      # Note: Updating repository secrets requires admin access
+      # The GITHUB_TOKEN may not have sufficient permissions for automatic secret updates
+      # Manual secret updates may be required
     
     steps:
     - name: Checkout repository

@@ -200,7 +200,13 @@ def update_github_secret_api(repo_owner: str, repo_name: str, secret_name: str,
             return False
             
     except Exception as e:
-        logger.error(f"❌ Error updating GitHub secret via API: {e}")
+        error_msg = str(e)
+        if "403" in error_msg or "Forbidden" in error_msg:
+            logger.error("❌ GitHub API Error: Insufficient permissions to update repository secrets")
+            logger.error("💡 The GITHUB_TOKEN may not have admin access required for secret updates")
+            logger.error("💡 This is normal - please update the secret manually as shown below")
+        else:
+            logger.error(f"❌ Error updating GitHub secret via API: {e}")
         return False
 
 
@@ -244,7 +250,12 @@ def update_github_secret(new_token: str) -> bool:
             else:
                 logger.warning(f"⚠️  Invalid GITHUB_REPOSITORY format: {github_repository}")
         else:
-            logger.info("ℹ️  GitHub API credentials not available, using manual process")
+            if not github_token:
+                logger.info("ℹ️  GITHUB_TOKEN not available - running locally or token not provided")
+            elif not github_repository:
+                logger.info("ℹ️  GITHUB_REPOSITORY not available - not running in GitHub Actions")
+            else:
+                logger.info("ℹ️  GitHub API credentials available but automatic update may require admin permissions")
         
         # Fallback to manual process
         logger.info("📝 MANUAL UPDATE REQUIRED:")
