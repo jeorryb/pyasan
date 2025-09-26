@@ -110,6 +110,15 @@ class InstagramGraphAPI:
             publish_response = requests.post(
                 publish_url, data=publish_params, timeout=30
             )
+            
+            # Log detailed error information for publish step if it fails
+            if publish_response.status_code != 200:
+                try:
+                    error_data = publish_response.json()
+                    logger.error(f"❌ Publish API Error Details: {error_data}")
+                except:
+                    logger.error(f"❌ Publish API Error: {publish_response.status_code} - {publish_response.text}")
+            
             publish_response.raise_for_status()
 
             publish_data = publish_response.json()
@@ -336,7 +345,7 @@ def main():
         # Post to Instagram with aspect ratio retry
         logger.info("📸 Posting to Instagram via Graph API...")
         post_id = None
-        max_posting_attempts = 5  # Increased from 3 to 5 attempts
+        max_posting_attempts = 7  # Increased to 7 attempts for extremely rare bad luck streaks
         
         for posting_attempt in range(max_posting_attempts):
             logger.info(f"📸 Attempt {posting_attempt + 1}/{max_posting_attempts}: Posting to Instagram...")
@@ -381,8 +390,43 @@ def main():
                     )
                     logger.info(f"📝 New caption preview: {caption[:100]}...")
                 else:
-                    logger.error("❌ Failed to post to Instagram after multiple attempts")
-                    sys.exit(1)
+                    logger.error("❌ Failed to post to Instagram after multiple attempts with random APODs")
+                    logger.info("🎯 Trying one last time with today's APOD as fallback...")
+                    
+                    # Final fallback: try today's APOD
+                    try:
+                        today_apod = apod_client.get_apod()
+                        if today_apod.media_type == "image":
+                            logger.info(f"✓ Retrieved today's APOD: {today_apod.title}")
+                            
+                            public_image_url = today_apod.hdurl or today_apod.url
+                            logger.info(f"✅ Using today's APOD image URL: {public_image_url}")
+                            
+                            caption = create_instagram_caption(
+                                {
+                                    "title": today_apod.title,
+                                    "explanation": today_apod.explanation or "",
+                                    "date": str(today_apod.date),
+                                    "copyright": today_apod.copyright or "",
+                                }
+                            )
+                            
+                            logger.info("📸 Final attempt with today's APOD...")
+                            final_post_id = instagram_client.upload_image(public_image_url, caption)
+                            
+                            if final_post_id:
+                                logger.info("✅ Successfully posted today's APOD to Instagram!")
+                                logger.info(f"📱 Post ID: {final_post_id}")
+                                post_id = final_post_id
+                            else:
+                                logger.error("❌ Even today's APOD failed to post")
+                                sys.exit(1)
+                        else:
+                            logger.error("❌ Today's APOD is not an image - complete failure")
+                            sys.exit(1)
+                    except Exception as fallback_error:
+                        logger.error(f"❌ Fallback to today's APOD failed: {fallback_error}")
+                        sys.exit(1)
 
         # No cleanup needed since we didn't download any files
         logger.info("🧹 No temporary files to clean up")
