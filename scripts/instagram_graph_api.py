@@ -154,6 +154,32 @@ class InstagramGraphAPI:
             }
 
             response = requests.get(url, params=params, timeout=30)
+            
+            # Log detailed error information if request fails
+            if response.status_code != 200:
+                try:
+                    error_data = response.json()
+                    logger.error(f"❌ API Error Details: {error_data}")
+                    # Check for specific error types
+                    if "error" in error_data:
+                        error_info = error_data["error"]
+                        error_code = error_info.get("code", "unknown")
+                        error_message = error_info.get("message", "unknown")
+                        error_type = error_info.get("type", "unknown")
+                        logger.error(f"❌ Error Code: {error_code}")
+                        logger.error(f"❌ Error Type: {error_type}")
+                        logger.error(f"❌ Error Message: {error_message}")
+                        
+                        # Provide helpful hints based on error
+                        if error_code == 190:
+                            logger.error("💡 Token error - your access token may be expired or invalid")
+                            logger.error("💡 Run the token renewal workflow or check your INSTAGRAM_ACCESS_TOKEN secret")
+                        elif error_code == 100:
+                            logger.error("💡 Invalid parameter - check your INSTAGRAM_ACCOUNT_ID secret")
+                            logger.error("💡 Make sure you're using your Instagram Business Account ID, not Page ID")
+                except Exception as parse_error:
+                    logger.error(f"❌ API Error: {response.status_code} - {response.text}")
+            
             response.raise_for_status()
 
             return response.json()

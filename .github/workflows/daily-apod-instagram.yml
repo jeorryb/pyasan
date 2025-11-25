@@ -23,6 +23,14 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+    
+    - name: Diagnose Instagram configuration
+      env:
+        INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+        INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+      run: |
+        echo "Running diagnostic to check token and account configuration..."
+        python scripts/diagnose_instagram_token.py
         
     - name: Run Instagram Graph API poster
       env:
