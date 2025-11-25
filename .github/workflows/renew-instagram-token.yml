@@ -2,19 +2,13 @@ name: Renew Instagram Access Token
 
 on:
   schedule:
-    # Run monthly on the 1st at 6 AM UTC to check token expiry
-    - cron: '0 6 1 * *'
+    # Run weekly on Mondays at 9:00 AM UTC
+    - cron: '0 9 * * 1'
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
   renew-token:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
-      # Note: Updating repository secrets requires admin access
-      # The GITHUB_TOKEN may not have sufficient permissions for automatic secret updates
-      # Manual secret updates may be required
     
     steps:
     - name: Checkout repository
@@ -30,22 +24,39 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests cryptography
     
-    - name: Check and renew Instagram token
+    - name: Check and renew token if needed
+      id: renewal
       env:
         INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-        FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
+        FACEBOOK_APP_ID: "1914060772854547"
         FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITHUB_REPOSITORY: ${{ github.repository }}
       run: |
-        python scripts/renew_instagram_token.py
+        python scripts/renew_instagram_token.py 2>&1 | tee token_renewal.log
+        
+        # Check if manual update is required
+        if grep -q "MANUAL UPDATE REQUIRED" token_renewal.log; then
+          echo "manual_update_needed=true" >> $GITHUB_OUTPUT
+        else
+          echo "manual_update_needed=false" >> $GITHUB_OUTPUT
+        fi
     
     - name: Upload renewal logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: token-renewal-logs
-        path: |
-          token_renewal.log
-        retention-days: 30
+        path: token_renewal.log
+        retention-days: 7
     
+    - name: Notify if manual update needed (triggers email)
+      if: steps.renewal.outputs.manual_update_needed == 'true'
+      run: |
+        echo "::error::🔔 INSTAGRAM TOKEN RENEWAL REQUIRED!"
+        echo "::error::Your Instagram access token has been renewed but requires manual update."
+        echo "::error::📥 Download the 'token-renewal-logs' artifact from this workflow run"
+        echo "::error::🔍 Find the new token in the logs (look for 'SECRET VALUE:')"
+        echo "::error::🔐 Update it at: https://github.com/${{ github.repository }}/settings/secrets/actions"
+        echo "::error::✏️  Edit the INSTAGRAM_ACCESS_TOKEN secret with the new value"
+        echo ""
+        echo "::warning::The workflow will continue to fail until you update the secret."
+        exit 1
