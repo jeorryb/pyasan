@@ -195,6 +195,10 @@ local/
 *instagram_session.json
 instagram_poster.log
 token_renewal.log
+instagram_graph_api.log
+
+# But keep the status file for workflow activity tracking
+!logs/instagram/last_successful_post.txt
 
 # Documentation folder
 docs/

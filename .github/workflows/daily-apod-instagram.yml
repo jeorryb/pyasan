@@ -9,10 +9,14 @@ on:
 jobs:
   post-apod:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to commit status file
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -33,12 +37,53 @@ jobs:
         python scripts/diagnose_instagram_token.py
         
     - name: Run Instagram Graph API poster
+      id: post
       env:
         NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
         INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
         INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
       run: |
         python scripts/instagram_graph_api.py
+    
+    - name: Record successful post
+      if: success()
+      run: |
+        # Create logs directory if it doesn't exist
+        mkdir -p logs/instagram
+        
+        # Create status file with timestamp and run info
+        cat > logs/instagram/last_successful_post.txt << EOF
+        Last Successful Instagram Post
+        ================================
+        Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        Workflow Run: ${{ github.run_number }}
+        Run ID: ${{ github.run_id }}
+        Repository: ${{ github.repository }}
+        Triggered by: ${{ github.event_name }}
+        
+        This file is automatically updated by the daily Instagram posting workflow.
+        It helps keep the repository active and prevents workflow auto-disabling.
+        
+        View this run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        EOF
+        
+        # Show the file content
+        cat logs/instagram/last_successful_post.txt
+    
+    - name: Commit status file
+      if: success()
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add logs/instagram/last_successful_post.txt
+        
+        # Only commit if there are changes
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "chore: update Instagram post status [skip ci]"
+          git push
+        fi
     
     - name: Upload logs on failure
       if: failure()

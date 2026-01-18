@@ -1,0 +1,12 @@
+Last Successful Instagram Post
+================================
+Date: Not yet run
+Workflow Run: Initial setup
+Run ID: N/A
+Repository: jeorryb/pyasan
+Triggered by: manual
+
+This file is automatically updated by the daily Instagram posting workflow.
+It helps keep the repository active and prevents workflow auto-disabling.
+
+Waiting for first automated post...
