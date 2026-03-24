@@ -59,7 +59,7 @@ def check_token_expiry(access_token: str) -> dict:
                 "expires_at": expires_at,
                 "expiry_date": expiry_date,
                 "days_remaining": days_remaining,
-                "needs_renewal": days_remaining <= 7  # Renew if 7 days or less
+                "needs_renewal": days_remaining <= 30  # Renew if 30 days or less
             }
         else:
             logger.error("❌ Could not determine token expiry")
@@ -71,10 +71,14 @@ def check_token_expiry(access_token: str) -> dict:
 
 
 def renew_access_token(app_id: str, app_secret: str, current_token: str) -> str:
-    """Renew the Instagram access token."""
+    """Renew the Instagram access token.
+
+    Uses fb_exchange_token to exchange the current long-lived token for a fresh
+    60-day long-lived token. Requires app_id and app_secret.
+    """
     try:
         logger.info("🔄 Attempting to renew access token...")
-        
+
         url = "https://graph.facebook.com/v18.0/oauth/access_token"
         params = {
             "grant_type": "fb_exchange_token",
@@ -82,14 +86,14 @@ def renew_access_token(app_id: str, app_secret: str, current_token: str) -> str:
             "client_secret": app_secret,
             "fb_exchange_token": current_token
         }
-        
+
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
-        
+
         data = response.json()
         new_token = data.get("access_token")
         expires_in = data.get("expires_in", 0)
-        
+
         if new_token:
             days_valid = expires_in // 86400  # Convert seconds to days
             logger.info(f"✅ Successfully renewed token!")
@@ -97,6 +101,7 @@ def renew_access_token(app_id: str, app_secret: str, current_token: str) -> str:
             return new_token
         else:
             logger.error("❌ No access token in renewal response")
+            logger.error(f"❌ Response: {data}")
             return None
             
     except requests.exceptions.HTTPError as e:
@@ -295,17 +300,17 @@ def main():
     
     if not app_secret:
         logger.error("❌ FACEBOOK_APP_SECRET not found in environment")
-        logger.info("💡 Add FACEBOOK_APP_SECRET to your GitHub secrets")
+        logger.info("💡 Add FACEBOOK_APP_SECRET to your GitHub secrets or set it locally")
         sys.exit(1)
-    
+
     # Check if token needs renewal
     token_info = check_token_expiry(current_token)
-    
+
     if not token_info.get("needs_renewal", False):
         days_remaining = token_info.get("days_remaining", 0)
         logger.info(f"✅ Token is still valid for {days_remaining} days - no renewal needed")
         return
-    
+
     # Renew the token
     new_token = renew_access_token(app_id, app_secret, current_token)
     
