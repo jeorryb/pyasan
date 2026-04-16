@@ -1,12 +1,12 @@
 Last Successful Instagram Post
 ================================
-Date: 2026-04-15 14:59:51 UTC
-Workflow Run: 232
-Run ID: 24461791583
+Date: 2026-04-16 13:55:02 UTC
+Workflow Run: 233
+Run ID: 24514200752
 Repository: jeorryb/pyasan
-Triggered by: workflow_dispatch
+Triggered by: schedule
 
 This file is automatically updated by the daily Instagram posting workflow.
 It helps keep the repository active and prevents workflow auto-disabling.
 
-View this run: https://github.com/jeorryb/pyasan/actions/runs/24461791583
+View this run: https://github.com/jeorryb/pyasan/actions/runs/24514200752
