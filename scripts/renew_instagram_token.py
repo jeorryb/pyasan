@@ -59,7 +59,7 @@ def check_token_expiry(access_token: str) -> dict:
                 "expires_at": expires_at,
                 "expiry_date": expiry_date,
                 "days_remaining": days_remaining,
-                "needs_renewal": days_remaining <= 30  # Renew if 30 days or less
+                "needs_renewal": days_remaining <= 70  # TEMP: force renewal to validate PAT path
             }
         else:
             logger.error("❌ Could not determine token expiry")
