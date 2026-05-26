@@ -245,23 +245,18 @@ def update_github_secret(new_token: str) -> bool:
             else:
                 logger.info("ℹ️  GitHub API credentials available but automatic update may require admin permissions")
         
-        # Fallback to manual process - provide token securely
-        logger.info("📝 MANUAL UPDATE REQUIRED:")
-        logger.info("🔒 NEW INSTAGRAM ACCESS TOKEN:")
-        logger.info("=" * 70)
-        logger.info("SECRET NAME: INSTAGRAM_ACCESS_TOKEN")
-        logger.info(f"SECRET VALUE: {new_token}")
-        logger.info("=" * 70)
-        logger.info("📋 INSTRUCTIONS:")
-        logger.info("1. Go to GitHub repository → Settings → Secrets and variables → Actions")
-        logger.info("2. Click 'INSTAGRAM_ACCESS_TOKEN' → Edit")
-        logger.info("3. Replace with the SECRET VALUE shown above")
-        logger.info("4. Click 'Update secret'")
-        logger.info("")
-        logger.info("⚠️  SECURITY: This token is only shown when manual update is required")
-        logger.info("⚠️  The token above expires in ~60 days and will need renewal")
-        
-        return True
+        # Auto-update failed. Do NOT log the token — workflow logs are visible
+        # to anyone with repo read access. Discard this token; the next run
+        # will mint a fresh one once the auto-update path is fixed.
+        logger.error("❌ MANUAL UPDATE REQUIRED: automatic secret rotation failed")
+        logger.error("💡 The newly-issued token has been discarded (NOT logged) for security")
+        logger.error("💡 Fix the auto-update path, then re-trigger this workflow:")
+        logger.error("   - Verify RENEWAL_PAT exists and is a fine-grained PAT")
+        logger.error("   - Resource owner = your account, repo access = this repo only")
+        logger.error("   - Repository permissions → Secrets: Read and write")
+        logger.error("💡 If you need to recover a token out-of-band, run")
+        logger.error("   scripts/get_new_long_lived_token.py locally with a fresh short-lived token")
+        return False
         
     except Exception as e:
         logger.error(f"❌ Error updating GitHub secret: {e}")
@@ -304,10 +299,10 @@ def main():
         
         if new_token_info.get("days_remaining", 0) > 0:
             logger.info("✅ New token verified and working!")
-            
-            # Update GitHub secret (manual for now)
-            update_github_secret(new_token)
-            
+
+            if not update_github_secret(new_token):
+                sys.exit(1)
+
             logger.info("🎉 Token renewal completed successfully!")
         else:
             logger.error("❌ New token verification failed")
