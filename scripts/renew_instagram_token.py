@@ -14,9 +14,7 @@ import logging
 import base64
 from datetime import datetime, timedelta
 from pathlib import Path
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.serialization import load_pem_public_key
+from nacl import encoding, public
 
 # Add the pyasan package to the path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -119,27 +117,12 @@ def renew_access_token(app_id: str, app_secret: str, current_token: str) -> str:
 
 
 def encrypt_secret_for_github(public_key_data: str, secret_value: str) -> str:
-    """Encrypt a secret value using GitHub's public key."""
+    """Encrypt a secret value using GitHub's public key (libsodium sealed box)."""
     try:
-        # Decode the base64 public key
-        public_key_bytes = base64.b64decode(public_key_data)
-        
-        # Load the public key
-        public_key = load_pem_public_key(public_key_bytes)
-        
-        # Encrypt the secret
-        encrypted_bytes = public_key.encrypt(
-            secret_value.encode('utf-8'),
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-        
-        # Return base64 encoded encrypted value
-        return base64.b64encode(encrypted_bytes).decode('utf-8')
-        
+        public_key = public.PublicKey(public_key_data.encode("utf-8"), encoding.Base64Encoder())
+        sealed_box = public.SealedBox(public_key)
+        encrypted = sealed_box.encrypt(secret_value.encode("utf-8"))
+        return base64.b64encode(encrypted).decode("utf-8")
     except Exception as e:
         logger.error(f"❌ Error encrypting secret: {e}")
         raise

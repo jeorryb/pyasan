@@ -22,7 +22,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests cryptography
+        pip install requests pynacl
     
     - name: Check and renew token if needed
       id: renewal
