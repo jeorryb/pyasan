@@ -39,30 +39,43 @@ def check_token_expiry(access_token: str) -> dict:
             "input_token": access_token,
             "access_token": access_token
         }
-        
+
         response = requests.get(url, params=params, timeout=30)
+
+        # A 400/401 from debug_token means the token is already expired/invalid
+        if response.status_code in (400, 401):
+            logger.error("❌ Token is already EXPIRED — cannot be renewed via API")
+            return {"needs_renewal": False, "already_expired": True}
+
         response.raise_for_status()
-        
+
         data = response.json().get("data", {})
+
+        if not data.get("is_valid", True) is False:
+            # is_valid explicitly false
+            logger.error("❌ Token is invalid — cannot be renewed via API")
+            return {"needs_renewal": False, "already_expired": True}
+
         expires_at = data.get("expires_at")
-        
+
         if expires_at:
             expiry_date = datetime.fromtimestamp(expires_at)
             days_remaining = (expiry_date - datetime.now()).days
-            
+
             logger.info(f"🔍 Current token expires: {expiry_date.strftime('%B %d, %Y at %I:%M %p')}")
             logger.info(f"⏰ Days remaining: {days_remaining}")
-            
+
             return {
                 "expires_at": expires_at,
                 "expiry_date": expiry_date,
                 "days_remaining": days_remaining,
-                "needs_renewal": days_remaining <= 30  # Renew if 30 days or less
+                "needs_renewal": days_remaining <= 30,  # Renew if 30 days or less
+                "already_expired": False,
             }
         else:
             logger.error("❌ Could not determine token expiry")
             return {"needs_renewal": True}  # Assume needs renewal if can't check
-            
+
     except Exception as e:
         logger.error(f"❌ Error checking token expiry: {e}")
         return {"needs_renewal": True}  # Assume needs renewal on error
@@ -186,15 +199,22 @@ def update_github_secret_api(repo_owner: str, repo_name: str, secret_name: str,
         else:
             logger.error(f"❌ Unexpected response code: {response.status_code}")
             return False
-            
-    except Exception as e:
-        error_msg = str(e)
-        if "403" in error_msg or "Forbidden" in error_msg:
-            logger.error("❌ GitHub API Error: Insufficient permissions to update repository secrets")
-            logger.error("💡 The GITHUB_TOKEN may not have admin access required for secret updates")
-            logger.error("💡 This is normal - please update the secret manually as shown below")
+
+    except requests.exceptions.HTTPError as e:
+        status = e.response.status_code if e.response is not None else None
+        if status == 401:
+            logger.error("❌ GitHub API returned 401 — RENEWAL_PAT has expired or is invalid")
+            logger.error("💡 Fix: Go to GitHub → Settings → Developer settings → Personal access tokens")
+            logger.error("💡       Regenerate the PAT with 'Secrets: Read and write' on this repo,")
+            logger.error("💡       then update the RENEWAL_PAT repository secret.")
+        elif status == 403:
+            logger.error("❌ GitHub API returned 403 — RENEWAL_PAT lacks 'Secrets: Read and write' permission")
+            logger.error("💡 Fix: Regenerate the PAT and ensure it has Secrets write access on this repo.")
         else:
-            logger.error(f"❌ Error updating GitHub secret via API: {e}")
+            logger.error(f"❌ HTTP error updating GitHub secret: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"❌ Error updating GitHub secret via API: {e}")
         return False
 
 
@@ -283,6 +303,17 @@ def main():
 
     # Check if token needs renewal
     token_info = check_token_expiry(current_token)
+
+    if token_info.get("already_expired"):
+        github_repository = os.getenv("GITHUB_REPOSITORY", "your-repo")
+        bootstrap_url = f"https://github.com/{github_repository}/actions/workflows/bootstrap-instagram-token.yml"
+        logger.error("❌ TOKEN IS ALREADY EXPIRED — automatic renewal is not possible")
+        logger.error("💡 An expired token cannot be exchanged via the Facebook API.")
+        logger.error(f"💡 Use the bootstrap workflow to mint a fresh token:")
+        logger.error(f"💡   {bootstrap_url}")
+        logger.error("💡   → Run workflow → paste a fresh short-lived token from")
+        logger.error("💡     https://developers.facebook.com/tools/explorer/")
+        sys.exit(1)
 
     if not token_info.get("needs_renewal", False):
         days_remaining = token_info.get("days_remaining", 0)

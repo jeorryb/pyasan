@@ -1,0 +1,115 @@
+name: Bootstrap Instagram Token
+
+on:
+  workflow_dispatch:
+    inputs:
+      short_lived_token:
+        description: >
+          Short-lived User Access Token from
+          https://developers.facebook.com/tools/explorer/
+          (instagram_basic + instagram_content_publish permissions)
+        required: true
+        type: string
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests pynacl
+
+    - name: Exchange for long-lived token and update secret
+      env:
+        FACEBOOK_APP_ID: "1914060772854547"
+        FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
+        SHORT_LIVED_TOKEN: ${{ inputs.short_lived_token }}
+        GITHUB_TOKEN: ${{ secrets.RENEWAL_PAT }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+      run: |
+        python - <<'EOF'
+        import os, sys, requests, base64, logging
+        from nacl import encoding, public
+
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        logger = logging.getLogger(__name__)
+
+        app_id     = os.environ["FACEBOOK_APP_ID"]
+        app_secret = os.environ["FACEBOOK_APP_SECRET"]
+        token      = os.environ["SHORT_LIVED_TOKEN"]
+        gh_token   = os.environ["GITHUB_TOKEN"]
+        repo       = os.environ["GITHUB_REPOSITORY"]
+
+        # Exchange short-lived token for a 60-day long-lived token
+        logger.info("🔄 Exchanging for long-lived token...")
+        r = requests.get(
+            "https://graph.facebook.com/v18.0/oauth/access_token",
+            params={"grant_type": "fb_exchange_token", "client_id": app_id,
+                    "client_secret": app_secret, "fb_exchange_token": token},
+            timeout=30,
+        )
+        r.raise_for_status()
+        data = r.json()
+        new_token = data.get("access_token")
+        if not new_token:
+            logger.error(f"❌ No token in response: {data}")
+            sys.exit(1)
+        days = data.get("expires_in", 0) // 86400
+        logger.info(f"✅ Long-lived token obtained — valid for {days} days")
+
+        # Verify it
+        logger.info("🔍 Verifying new token...")
+        vr = requests.get(
+            "https://graph.facebook.com/v18.0/debug_token",
+            params={"input_token": new_token, "access_token": new_token},
+            timeout=30,
+        )
+        vr.raise_for_status()
+        vdata = vr.json().get("data", {})
+        if not vdata.get("is_valid"):
+            logger.error("❌ New token failed verification")
+            sys.exit(1)
+        logger.info("✅ Token verified")
+
+        # Get repo public key
+        owner, repo_name = repo.split("/")
+        headers = {"Authorization": f"token {gh_token}",
+                   "Accept": "application/vnd.github.v3+json",
+                   "User-Agent": "PyASAN-Bootstrap/1.0"}
+        pk_r = requests.get(
+            f"https://api.github.com/repos/{owner}/{repo_name}/actions/secrets/public-key",
+            headers=headers, timeout=30,
+        )
+        if pk_r.status_code == 401:
+            logger.error("❌ GitHub 401 — RENEWAL_PAT is expired or invalid")
+            logger.error("💡 Regenerate the PAT at GitHub → Settings → Developer settings → Personal access tokens")
+            sys.exit(1)
+        pk_r.raise_for_status()
+        pk_data = pk_r.json()
+
+        # Encrypt and upload
+        pub_key = public.PublicKey(pk_data["key"].encode(), encoding.Base64Encoder())
+        encrypted = base64.b64encode(public.SealedBox(pub_key).encrypt(new_token.encode())).decode()
+        up_r = requests.put(
+            f"https://api.github.com/repos/{owner}/{repo_name}/actions/secrets/INSTAGRAM_ACCESS_TOKEN",
+            headers=headers,
+            json={"encrypted_value": encrypted, "key_id": pk_data["key_id"]},
+            timeout=30,
+        )
+        if up_r.status_code == 401:
+            logger.error("❌ GitHub 401 writing secret — RENEWAL_PAT is expired or invalid")
+            sys.exit(1)
+        up_r.raise_for_status()
+        logger.info("🎉 INSTAGRAM_ACCESS_TOKEN secret updated successfully!")
+        logger.info(f"⏰ New token valid for ~{days} days — daily renewal will keep it fresh from here.")
+        EOF

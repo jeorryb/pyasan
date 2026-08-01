@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-Quick Instagram Token Expiry Checker
+Instagram Token Expiry Checker
+
+Exits non-zero if the token is expired or has fewer than WARNING_DAYS remaining.
+Used as a pre-flight check in the daily APOD workflow.
 """
 
 import os
@@ -8,72 +11,68 @@ import sys
 import requests
 from datetime import datetime
 
-def check_token(access_token: str):
-    """Check token expiry."""
+WARNING_DAYS = 7  # Warn (and fail the job) when this many days remain
+
+
+def check_token(access_token: str) -> int:
+    """Return days remaining, or -1 if expired/invalid."""
     try:
-        url = "https://graph.facebook.com/v18.0/debug_token"
-        params = {
-            "input_token": access_token,
-            "access_token": access_token
-        }
-        
-        response = requests.get(url, params=params, timeout=30)
+        response = requests.get(
+            "https://graph.facebook.com/v18.0/debug_token",
+            params={"input_token": access_token, "access_token": access_token},
+            timeout=30,
+        )
         response.raise_for_status()
-        
         data = response.json().get("data", {})
-        
-        print("=" * 70)
-        print("🔍 Instagram Token Status")
-        print("=" * 70)
-        
-        is_valid = data.get("is_valid")
-        print(f"✅ Valid: {is_valid}")
-        
+
+        if not data.get("is_valid"):
+            return -1
+
         expires_at = data.get("expires_at")
-        if expires_at:
-            expiry_date = datetime.fromtimestamp(expires_at)
-            now = datetime.now()
-            days_remaining = (expiry_date - now).days
-            hours_remaining = (expiry_date - now).seconds // 3600
-            
-            print(f"📅 Expires: {expiry_date.strftime('%B %d, %Y at %I:%M %p')}")
-            print(f"⏰ Time remaining: {days_remaining} days, {hours_remaining} hours")
-            print()
-            
-            if days_remaining >= 30:
-                print("🎉 Great! You have a LONG-LIVED token (60-day)")
-                print("   The renewal workflow will keep this fresh automatically.")
-            elif days_remaining >= 1:
-                print("⚠️  You have a SHORT-LIVED token!")
-                print("   This will expire soon. Run: python scripts/get_new_long_lived_token.py")
-            else:
-                print("❌ Token expires in less than 1 day!")
-                print("   Run: python scripts/get_new_long_lived_token.py IMMEDIATELY")
-        else:
-            print("❌ Could not determine expiry")
-        
-        scopes = data.get("scopes", [])
-        if scopes:
-            print(f"\n🔑 Permissions: {', '.join(scopes)}")
-        
-        print("=" * 70)
-        
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        sys.exit(1)
+        if not expires_at:
+            return -1
+
+        expiry_date = datetime.fromtimestamp(expires_at)
+        days_remaining = (expiry_date - datetime.now()).days
+        return days_remaining
+
+    except requests.exceptions.HTTPError as e:
+        if e.response is not None and e.response.status_code in (400, 401, 403):
+            # Token is expired or invalid — the API itself rejects it
+            return -1
+        raise
+
 
 def main():
     token = os.getenv("INSTAGRAM_ACCESS_TOKEN")
-    
     if not token:
-        print("Enter your Instagram access token:")
-        token = input("> ").strip()
-    
-    if not token:
-        print("❌ No token provided")
+        print("❌ INSTAGRAM_ACCESS_TOKEN not set")
         sys.exit(1)
-    
-    check_token(token)
+
+    try:
+        days = check_token(token)
+    except Exception as e:
+        print(f"❌ Error checking token: {e}")
+        sys.exit(1)
+
+    repo = os.getenv("GITHUB_REPOSITORY", "your-repo")
+    bootstrap_url = f"https://github.com/{repo}/actions/workflows/bootstrap-instagram-token.yml"
+
+    if days < 0:
+        print("::error::❌ INSTAGRAM TOKEN IS EXPIRED")
+        print(f"::error::Bootstrap a new token at: {bootstrap_url}")
+        print("::error::  → Run workflow → paste a fresh short-lived token from")
+        print("::error::    https://developers.facebook.com/tools/explorer/")
+        sys.exit(1)
+
+    print(f"✅ Token valid — {days} days remaining (expires {datetime.now().replace(microsecond=0)})")
+
+    if days <= WARNING_DAYS:
+        print(f"::warning::⚠️  Token expires in {days} day(s) — renewal should trigger today")
+        print(f"::warning::If renewal keeps failing, bootstrap manually: {bootstrap_url}")
+        # Still exit non-zero so the daily job fails and sends a notification
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

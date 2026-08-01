@@ -2,8 +2,8 @@ name: Renew Instagram Access Token
 
 on:
   schedule:
-    # Run weekly on Mondays at 9:00 AM UTC
-    - cron: '0 9 * * 1'
+    # Run daily at 9:00 AM UTC
+    - cron: '0 9 * * *'
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
@@ -53,11 +53,17 @@ jobs:
       if: steps.renewal.outputs.manual_update_needed == 'true'
       run: |
         echo "::error::🔔 INSTAGRAM TOKEN RENEWAL REQUIRED!"
-        echo "::error::Your Instagram access token has been renewed but requires manual update."
-        echo "::error::📥 Download the 'token-renewal-logs' artifact from this workflow run"
-        echo "::error::🔍 Find the new token in the logs (look for 'SECRET VALUE:')"
-        echo "::error::🔐 Update it at: https://github.com/${{ github.repository }}/settings/secrets/actions"
-        echo "::error::✏️  Edit the INSTAGRAM_ACCESS_TOKEN secret with the new value"
+        echo "::error::Automatic secret rotation failed — see logs for the specific cause."
+        echo "::error::"
+        echo "::error::Most likely cause: RENEWAL_PAT has expired."
+        echo "::error::Fix: Go to GitHub → Settings → Developer settings → Personal access tokens"
+        echo "::error::     Regenerate the PAT with 'Secrets: Read and write' on this repo,"
+        echo "::error::     then update the RENEWAL_PAT secret."
+        echo "::error::"
+        echo "::error::If the token itself is expired, use the bootstrap workflow:"
+        echo "::error::  https://github.com/${{ github.repository }}/actions/workflows/bootstrap-instagram-token.yml"
+        echo "::error::  → Run workflow → paste a fresh short-lived token from"
+        echo "::error::    https://developers.facebook.com/tools/explorer/"
         echo ""
-        echo "::warning::The workflow will continue to fail until you update the secret."
+        echo "::warning::The workflow will continue to fail until the secret is updated."
         exit 1
