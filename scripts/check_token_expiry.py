@@ -15,7 +15,12 @@ WARNING_DAYS = 7  # Warn (and fail the job) when this many days remain
 
 
 def check_token(access_token: str) -> tuple:
-    """Return (days remaining, expiry datetime), or (-1, None) if expired/invalid."""
+    """Return (days remaining, expiry datetime), or (-1, None) if expired/invalid.
+
+    Page tokens report expires_at == 0 (never expires), but can still lose
+    access when data_access_expires_at passes, so the earlier non-zero of the
+    two is used. Returns (None, None) if neither is set.
+    """
     try:
         response = requests.get(
             "https://graph.facebook.com/v18.0/debug_token",
@@ -28,11 +33,11 @@ def check_token(access_token: str) -> tuple:
         if not data.get("is_valid"):
             return -1, None
 
-        expires_at = data.get("expires_at")
-        if not expires_at:
-            return -1, None
+        deadlines = [t for t in (data.get("expires_at"), data.get("data_access_expires_at")) if t]
+        if not deadlines:
+            return None, None
 
-        expiry_date = datetime.fromtimestamp(expires_at)
+        expiry_date = datetime.fromtimestamp(min(deadlines))
         days_remaining = (expiry_date - datetime.now()).days
         return days_remaining, expiry_date
 
@@ -57,6 +62,10 @@ def main():
 
     repo = os.getenv("GITHUB_REPOSITORY", "your-repo")
     bootstrap_url = f"https://github.com/{repo}/actions/workflows/bootstrap-instagram-token.yml"
+
+    if days is None:
+        print("✅ Token valid — never expires")
+        return
 
     if days < 0:
         print("::error::❌ INSTAGRAM TOKEN IS EXPIRED")

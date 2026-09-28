@@ -57,6 +57,11 @@ def check_token_expiry(access_token: str) -> dict:
 
         expires_at = data.get("expires_at")
 
+        if expires_at == 0:
+            # Page tokens derived from a long-lived user token never expire
+            logger.info("🔍 Token never expires (page token) — no renewal needed")
+            return {"needs_renewal": False, "already_expired": False, "never_expires": True}
+
         if expires_at:
             expiry_date = datetime.fromtimestamp(expires_at)
             days_remaining = (expiry_date - datetime.now()).days
@@ -313,6 +318,10 @@ def main():
         logger.error("💡   → Run workflow → paste a fresh short-lived token from")
         logger.error("💡     https://developers.facebook.com/tools/explorer/")
         sys.exit(1)
+
+    if token_info.get("never_expires"):
+        logger.info("✅ Token is a non-expiring page token - no renewal needed")
+        return
 
     if not token_info.get("needs_renewal", False):
         days_remaining = token_info.get("days_remaining", 0)

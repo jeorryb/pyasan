@@ -42,9 +42,11 @@ jobs:
         SHORT_LIVED_TOKEN: ${{ inputs.short_lived_token }}
         GITHUB_TOKEN: ${{ secrets.RENEWAL_PAT }}
         GITHUB_REPOSITORY: ${{ github.repository }}
+        INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
       run: |
         python - <<'EOF'
         import os, sys, requests, base64, logging
+        from datetime import datetime
         from nacl import encoding, public
 
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -55,6 +57,7 @@ jobs:
         token      = os.environ["SHORT_LIVED_TOKEN"]
         gh_token   = os.environ["GITHUB_TOKEN"]
         repo       = os.environ["GITHUB_REPOSITORY"]
+        ig_id      = os.environ.get("INSTAGRAM_ACCOUNT_ID", "")
 
         # Exchange short-lived token for a 60-day long-lived token
         logger.info("🔄 Exchanging for long-lived token...")
@@ -73,11 +76,33 @@ jobs:
         days = data.get("expires_in", 0) // 86400
         logger.info(f"✅ Long-lived token obtained — valid for {days} days")
 
+        # Prefer the Page token for the Page linked to INSTAGRAM_ACCOUNT_ID: page
+        # tokens derived from a long-lived user token don't expire, whereas the
+        # user token lasts ~60 days and can't be extended by re-exchanging it.
+        store_token = new_token
+        logger.info("🔎 Looking up Page linked to INSTAGRAM_ACCOUNT_ID...")
+        url = "https://graph.facebook.com/v18.0/me/accounts"
+        params = {"fields": "name,access_token,instagram_business_account", "access_token": new_token}
+        page = None
+        while url and not page:
+            ar = requests.get(url, params=params, timeout=30)
+            ar.raise_for_status()
+            adata = ar.json()
+            page = next((p for p in adata.get("data", [])
+                         if ig_id and p.get("instagram_business_account", {}).get("id") == ig_id), None)
+            url, params = adata.get("paging", {}).get("next"), None
+        if page:
+            store_token = page["access_token"]
+            logger.info(f"✅ Using Page token for '{page['name']}'")
+        else:
+            print("::warning::No Page linked to INSTAGRAM_ACCOUNT_ID found (needs pages_show_list); "
+                  "storing the ~60-day user token instead")
+
         # Verify it
-        logger.info("🔍 Verifying new token...")
+        logger.info("🔍 Verifying token...")
         vr = requests.get(
             "https://graph.facebook.com/v18.0/debug_token",
-            params={"input_token": new_token, "access_token": new_token},
+            params={"input_token": store_token, "access_token": store_token},
             timeout=30,
         )
         vr.raise_for_status()
@@ -85,7 +110,9 @@ jobs:
         if not vdata.get("is_valid"):
             logger.error("❌ New token failed verification")
             sys.exit(1)
-        logger.info("✅ Token verified")
+        expires_at = vdata.get("expires_at", 0)
+        expiry = datetime.fromtimestamp(expires_at).strftime("%Y-%m-%d") if expires_at else "never"
+        logger.info(f"✅ Token verified ({vdata.get('type')}, expires: {expiry})")
 
         # Get repo public key
         owner, repo_name = repo.split("/")
@@ -105,7 +132,7 @@ jobs:
 
         # Encrypt and upload
         pub_key = public.PublicKey(pk_data["key"].encode(), encoding.Base64Encoder())
-        encrypted = base64.b64encode(public.SealedBox(pub_key).encrypt(new_token.encode())).decode()
+        encrypted = base64.b64encode(public.SealedBox(pub_key).encrypt(store_token.encode())).decode()
         up_r = requests.put(
             f"https://api.github.com/repos/{owner}/{repo_name}/actions/secrets/INSTAGRAM_ACCESS_TOKEN",
             headers=headers,
@@ -117,5 +144,5 @@ jobs:
             sys.exit(1)
         up_r.raise_for_status()
         logger.info("🎉 INSTAGRAM_ACCESS_TOKEN secret updated successfully!")
-        logger.info(f"⏰ New token valid for ~{days} days")
+        logger.info(f"⏰ Token expires: {expiry}")
         EOF
