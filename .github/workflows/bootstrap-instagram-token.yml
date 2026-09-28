@@ -16,6 +16,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Mask token input
+      # Workflow inputs are not auto-masked like secrets, and each step's env
+      # block is echoed to the log. Mask here, before any step that uses it.
+      # Read from the event payload so this step's own env doesn't leak it.
+      run: echo "::add-mask::$(jq -r '.inputs.short_lived_token' "$GITHUB_EVENT_PATH")"
+
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -111,5 +117,5 @@ jobs:
             sys.exit(1)
         up_r.raise_for_status()
         logger.info("🎉 INSTAGRAM_ACCESS_TOKEN secret updated successfully!")
-        logger.info(f"⏰ New token valid for ~{days} days — daily renewal will keep it fresh from here.")
+        logger.info(f"⏰ New token valid for ~{days} days")
         EOF
