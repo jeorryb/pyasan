@@ -14,8 +14,8 @@ from datetime import datetime
 WARNING_DAYS = 7  # Warn (and fail the job) when this many days remain
 
 
-def check_token(access_token: str) -> int:
-    """Return days remaining, or -1 if expired/invalid."""
+def check_token(access_token: str) -> tuple:
+    """Return (days remaining, expiry datetime), or (-1, None) if expired/invalid."""
     try:
         response = requests.get(
             "https://graph.facebook.com/v18.0/debug_token",
@@ -26,20 +26,20 @@ def check_token(access_token: str) -> int:
         data = response.json().get("data", {})
 
         if not data.get("is_valid"):
-            return -1
+            return -1, None
 
         expires_at = data.get("expires_at")
         if not expires_at:
-            return -1
+            return -1, None
 
         expiry_date = datetime.fromtimestamp(expires_at)
         days_remaining = (expiry_date - datetime.now()).days
-        return days_remaining
+        return days_remaining, expiry_date
 
     except requests.exceptions.HTTPError as e:
         if e.response is not None and e.response.status_code in (400, 401, 403):
             # Token is expired or invalid — the API itself rejects it
-            return -1
+            return -1, None
         raise
 
 
@@ -50,7 +50,7 @@ def main():
         sys.exit(1)
 
     try:
-        days = check_token(token)
+        days, expiry_date = check_token(token)
     except Exception as e:
         print(f"❌ Error checking token: {e}")
         sys.exit(1)
@@ -65,7 +65,7 @@ def main():
         print("::error::    https://developers.facebook.com/tools/explorer/")
         sys.exit(1)
 
-    print(f"✅ Token valid — {days} days remaining (expires {datetime.now().replace(microsecond=0)})")
+    print(f"✅ Token valid — {days} days remaining (expires {expiry_date})")
 
     if days <= WARNING_DAYS:
         print(f"::warning::⚠️  Token expires in {days} day(s) — renewal should trigger today")

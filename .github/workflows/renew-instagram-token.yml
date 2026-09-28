@@ -32,6 +32,7 @@ jobs:
         FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
         GITHUB_TOKEN: ${{ secrets.RENEWAL_PAT }}
       run: |
+        set -o pipefail
         python scripts/renew_instagram_token.py 2>&1 | tee token_renewal.log
         
         # Check if manual update is required

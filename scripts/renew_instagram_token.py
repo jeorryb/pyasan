@@ -51,8 +51,7 @@ def check_token_expiry(access_token: str) -> dict:
 
         data = response.json().get("data", {})
 
-        if not data.get("is_valid", True) is False:
-            # is_valid explicitly false
+        if data.get("is_valid") is False:
             logger.error("❌ Token is invalid — cannot be renewed via API")
             return {"needs_renewal": False, "already_expired": True}
 
