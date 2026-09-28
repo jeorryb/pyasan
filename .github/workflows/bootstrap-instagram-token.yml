@@ -80,22 +80,35 @@ jobs:
         # tokens derived from a long-lived user token don't expire, whereas the
         # user token lasts ~60 days and can't be extended by re-exchanging it.
         store_token = new_token
+        # Business-portfolio-owned Pages are missing from me/accounts, so also take
+        # Page IDs from the token's granular scopes and fetch each Page directly.
         logger.info("🔎 Looking up Page linked to INSTAGRAM_ACCOUNT_ID...")
-        url = "https://graph.facebook.com/v18.0/me/accounts"
-        params = {"fields": "name,access_token,instagram_business_account", "access_token": new_token}
+        G = "https://graph.facebook.com/v18.0"
+        page_ids = set()
+        ar = requests.get(f"{G}/me/accounts", params={"fields": "id", "limit": 100, "access_token": new_token}, timeout=30)
+        ar.raise_for_status()
+        page_ids.update(p["id"] for p in ar.json().get("data", []))
+        dr = requests.get(f"{G}/debug_token", params={"input_token": new_token, "access_token": new_token}, timeout=30)
+        dr.raise_for_status()
+        for gs in dr.json().get("data", {}).get("granular_scopes", []):
+            if gs.get("scope") == "pages_show_list":
+                page_ids.update(gs.get("target_ids", []))
+        logger.info(f"   Candidate Pages: {sorted(page_ids) or 'none'}")
         page = None
-        while url and not page:
-            ar = requests.get(url, params=params, timeout=30)
-            ar.raise_for_status()
-            adata = ar.json()
-            page = next((p for p in adata.get("data", [])
-                         if ig_id and p.get("instagram_business_account", {}).get("id") == ig_id), None)
-            url, params = adata.get("paging", {}).get("next"), None
+        for pid in sorted(page_ids):
+            pr = requests.get(f"{G}/{pid}", params={"fields": "name,access_token,instagram_business_account",
+                                                    "access_token": new_token}, timeout=30)
+            if not pr.ok:
+                continue
+            pdata = pr.json()
+            if ig_id and pdata.get("instagram_business_account", {}).get("id") == ig_id and pdata.get("access_token"):
+                page = pdata
+                break
         if page:
             store_token = page["access_token"]
             logger.info(f"✅ Using Page token for '{page['name']}'")
         else:
-            print("::warning::No Page linked to INSTAGRAM_ACCOUNT_ID found (needs pages_show_list); "
+            print(f"::warning::No Page linked to INSTAGRAM_ACCOUNT_ID found among {len(page_ids)} candidate(s); "
                   "storing the ~60-day user token instead")
 
         # Verify it
