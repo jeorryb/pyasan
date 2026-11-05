@@ -28,6 +28,8 @@ import logging
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pyasan import APODClient
+from pyasan.apod_archive import APODArchiveClient, is_placeholder
+from pyasan.models import APODResponse
 from pyasan.exceptions import PyASANError
 
 # Set up logging
@@ -272,6 +274,50 @@ def create_instagram_caption(apod_data: dict) -> str:
     return "\n".join(caption_parts)
 
 
+def is_postable(apod: APODResponse) -> bool:
+    """True if the APOD is a real still image Instagram can accept."""
+    if not apod.is_image or is_placeholder(apod):
+        return False
+    url = (apod.hdurl or apod.url or "").lower().split("?")[0]
+    # Instagram's Graph API only accepts JPEG/PNG, not GIF.
+    return bool(url) and not url.endswith(".gif")
+
+
+def pick_random_apod(
+    archive_client: APODArchiveClient, tried_urls: set, max_attempts: int = 10
+) -> Optional[APODResponse]:
+    """Pick a random postable APOD from the archive, skipping URLs already tried."""
+    for _ in range(max_attempts):
+        apod = archive_client.get_random_apod(max_attempts=5)
+        if apod is None:
+            continue
+        if not is_postable(apod):
+            logger.info(f"  Skipping {apod.date} ({apod.hdurl or apod.url})")
+            continue
+        if (apod.hdurl or apod.url) in tried_urls:
+            continue
+        logger.info(f"✓ Retrieved APOD: {apod.title}")
+        logger.info(f"  Date: {apod.date}")
+        return apod
+    return None
+
+
+def post_apod(instagram_client: "InstagramGraphAPI", apod: APODResponse) -> Optional[str]:
+    """Build the caption for ``apod`` and post it. Returns the post ID or None."""
+    image_url = apod.hdurl or apod.url
+    logger.info(f"✅ Using image URL: {image_url}")
+    caption = create_instagram_caption(
+        {
+            "title": apod.title,
+            "explanation": apod.explanation or "",
+            "date": str(apod.date),
+            "copyright": apod.copyright or "",
+        }
+    )
+    logger.info(f"📝 Caption preview: {caption[:100]}...")
+    return instagram_client.upload_image(image_url, caption)
+
+
 def main():
     """Main execution function."""
     logger.info("🚀 Starting Instagram Graph API APOD Poster")
@@ -314,149 +360,52 @@ def main():
             logger.error("❌ Failed to verify Instagram account access")
             sys.exit(1)
 
-        # Initialize NASA APOD client
-        logger.info("🔌 Connecting to NASA APOD API...")
+        # Initialize APOD clients.
+        # The api.nasa.gov random endpoint currently returns NASA's logo as a
+        # placeholder for archive dates, so random picks come from the
+        # science.nasa.gov archive. The API is only used for today's APOD.
+        logger.info("🔌 Connecting to NASA APOD sources...")
+        archive_client = APODArchiveClient()
         apod_client = APODClient(api_key=nasa_api_key)
 
-        # Get a random APOD that is an image
-        logger.info("📡 Fetching a random Astronomy Picture of the Day...")
-        max_retries = 5
-        apod = None
-
-        for attempt in range(max_retries):
-            apod = apod_client.get_random_apod()
-            logger.info(f"✓ Retrieved APOD: {apod.title}")
-            logger.info(f"  Date: {apod.date}")
-            logger.info(f"  Media Type: {apod.media_type}")
-
-            if apod.media_type == "image":
-                break
-            else:
-                logger.info(
-                    f"  Attempt {attempt + 1}: Got {apod.media_type}, trying again..."
-                )
-
-        # Check if we got an image
-        if not apod or apod.media_type != "image":
-            logger.warning(
-                f"After {max_retries} attempts, couldn't find an image APOD. Skipping."
-            )
-            return
-
-        if not apod.url:
-            logger.error("❌ No image URL found in APOD data")
-            sys.exit(1)
-
-        # Use NASA's public image URL directly
-        logger.info("🔗 Using NASA's public image URL...")
-
-        # Prefer HD version if available, otherwise use regular URL
-        public_image_url = apod.hdurl if apod.hdurl else apod.url
-
-        if not public_image_url:
-            logger.error("❌ No image URL found in APOD data")
-            sys.exit(1)
-
-        logger.info(f"✅ Using image URL: {public_image_url}")
-
-        # Create caption
-        logger.info("✍️ Creating Instagram caption...")
-        caption = create_instagram_caption(
-            {
-                "title": apod.title,
-                "explanation": apod.explanation or "",
-                "date": str(apod.date),
-                "copyright": apod.copyright or "",
-            }
-        )
-
-        logger.info(f"📝 Caption preview: {caption[:100]}...")
-
-        # Post to Instagram with retry for aspect ratio and other issues
-        logger.info("📸 Posting to Instagram via Graph API...")
+        max_posting_attempts = 3
         post_id = None
-        max_posting_attempts = 3  # Reduced from 7 to 3 - timing fix resolves most issues
-        
+        tried_urls: set = set()
+
         for posting_attempt in range(max_posting_attempts):
+            logger.info("📡 Fetching a random Astronomy Picture of the Day...")
+            apod = pick_random_apod(archive_client, tried_urls)
+            if apod is None:
+                logger.warning("⚠️ Could not find a postable random APOD")
+                continue
+
             logger.info(f"📸 Attempt {posting_attempt + 1}/{max_posting_attempts}: Posting to Instagram...")
-            post_id = instagram_client.upload_image(public_image_url, caption)
-            
+            post_id = post_apod(instagram_client, apod)
             if post_id:
-                logger.info("✅ Successfully posted random APOD to Instagram!")
-                logger.info(f"📱 Post ID: {post_id}")
                 break
-            else:
-                # If posting failed, try a different APOD
-                if posting_attempt < max_posting_attempts - 1:
-                    logger.warning(f"⚠️  Posting attempt {posting_attempt + 1} failed")
-                    logger.info(f"🔄 Trying with a different random APOD... ({max_posting_attempts - posting_attempt - 1} attempts remaining)")
-                    
-                    # Brief delay to be respectful to the API
-                    time.sleep(2)  # Reduced from 3s - timing issues now handled by processing delay
-                    
-                    # Get another random APOD
-                    for retry_attempt in range(max_retries):
-                        apod = apod_client.get_random_apod()
-                        logger.info(f"✓ Retrieved new APOD: {apod.title} ({apod.date})")
-                        
-                        if apod.media_type == "image":
-                            break
-                    
-                    if apod.media_type != "image":
-                        logger.error("❌ Could not find another image APOD")
-                        sys.exit(1)
-                    
-                    # Update image URL and caption for new APOD
-                    public_image_url = apod.hdurl or apod.url
-                    logger.info(f"✅ Using new image URL: {public_image_url}")
-                    
-                    caption = create_instagram_caption(
-                        {
-                            "title": apod.title,
-                            "explanation": apod.explanation or "",
-                            "date": str(apod.date),
-                            "copyright": apod.copyright or "",
-                        }
-                    )
-                    logger.info(f"📝 New caption preview: {caption[:100]}...")
-                else:
-                    logger.error("❌ Failed to post to Instagram after multiple attempts with random APODs")
-                    logger.info("🎯 Trying one last time with today's APOD as fallback...")
-                    
-                    # Final fallback: try today's APOD
-                    try:
-                        today_apod = apod_client.get_apod()
-                        if today_apod.media_type == "image":
-                            logger.info(f"✓ Retrieved today's APOD: {today_apod.title}")
-                            
-                            public_image_url = today_apod.hdurl or today_apod.url
-                            logger.info(f"✅ Using today's APOD image URL: {public_image_url}")
-                            
-                            caption = create_instagram_caption(
-                                {
-                                    "title": today_apod.title,
-                                    "explanation": today_apod.explanation or "",
-                                    "date": str(today_apod.date),
-                                    "copyright": today_apod.copyright or "",
-                                }
-                            )
-                            
-                            logger.info("📸 Final attempt with today's APOD...")
-                            final_post_id = instagram_client.upload_image(public_image_url, caption)
-                            
-                            if final_post_id:
-                                logger.info("✅ Successfully posted today's APOD to Instagram!")
-                                logger.info(f"📱 Post ID: {final_post_id}")
-                                post_id = final_post_id
-                            else:
-                                logger.error("❌ Even today's APOD failed to post")
-                                sys.exit(1)
-                        else:
-                            logger.error("❌ Today's APOD is not an image - complete failure")
-                            sys.exit(1)
-                    except Exception as fallback_error:
-                        logger.error(f"❌ Fallback to today's APOD failed: {fallback_error}")
-                        sys.exit(1)
+            tried_urls.add(apod.hdurl or apod.url)
+            time.sleep(2)
+
+        if not post_id:
+            logger.info("🎯 Falling back to today's APOD...")
+            try:
+                today_apod = apod_client.get_apod()
+            except PyASANError as fallback_error:
+                logger.error(f"❌ Fallback to today's APOD failed: {fallback_error}")
+                today_apod = None
+
+            if today_apod is not None and is_postable(today_apod):
+                post_id = post_apod(instagram_client, today_apod)
+            elif today_apod is not None:
+                logger.error("❌ Today's APOD is not a postable image")
+
+        if not post_id:
+            # Fail loudly: a green run must mean a real post went out.
+            logger.error("❌ No valid APOD could be posted to Instagram")
+            sys.exit(1)
+
+        logger.info("✅ Successfully posted APOD to Instagram!")
+        logger.info(f"📱 Post ID: {post_id}")
 
         # No cleanup needed since we didn't download any files
         logger.info("🧹 No temporary files to clean up")
