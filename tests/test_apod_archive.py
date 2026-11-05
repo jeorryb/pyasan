@@ -5,8 +5,6 @@ from datetime import date
 from pathlib import Path
 from unittest.mock import Mock
 
-import pytest
-
 from pyasan.apod_archive import (
     APODArchiveClient,
     is_placeholder,
@@ -15,6 +13,14 @@ from pyasan.apod_archive import (
 from pyasan.models import APODResponse
 
 FIXTURES = Path(__file__).parent / "fixtures"
+CRAB_TITLE_TAG = (
+    "<title>APOD: 1998 November 22 - The High Energy Crab Nebula - NASA Science"
+    "</title>"
+)
+LOGO_URL = (
+    "https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/"
+    "nasa-logo@2x.png"
+)
 
 
 def fixture(name: str) -> str:
@@ -56,10 +62,14 @@ class TestParseApodPage:
 
     def test_credit_and_copyright_variant(self):
         html = fixture("apod_1998_11_22.html")
-        marker = "Credit: <a href=\"mailto:gsh@libra.usno.navy.mil\">G. Hennessy</a>"
+        marker = 'Credit: <a href="mailto:gsh@libra.usno.navy.mil">G. Hennessy</a>'
         assert marker in html
-        html = html.replace(marker, "Credit &amp; Copyright: <a href=\"#\">Steve Crouch</a>").replace(
-            " (USNO) et al., UIT, <a href=\"http://www.nasa.gov/\" target=\"_blank\">NASA</a>", ""
+        html = html.replace(
+            marker, 'Credit &amp; Copyright: <a href="#">Steve Crouch</a>'
+        ).replace(
+            ' (USNO) et al., UIT, <a href="http://www.nasa.gov/"'
+            ' target="_blank">NASA</a>',
+            "",
         )
         apod = parse_apod_page(html, date(1998, 11, 22))
         assert apod is not None and apod.copyright == "Steve Crouch"
@@ -69,7 +79,9 @@ class TestParseApodPage:
 
     def test_date_mismatch_is_rejected(self):
         # Page is for 1998-11-22, but we asked for a different day.
-        assert parse_apod_page(fixture("apod_1998_11_22.html"), date(1998, 11, 23)) is None
+        assert (
+            parse_apod_page(fixture("apod_1998_11_22.html"), date(1998, 11, 23)) is None
+        )
 
     def test_page_without_image_is_not_image(self):
         html = fixture("apod_1998_11_22.html")
@@ -110,7 +122,7 @@ class TestIsPlaceholder:
         assert is_placeholder(self._apod(title="NASA Science"))
 
     def test_the_api_placeholder_record(self):
-        logo = "https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa-logo@2x.png"
+        logo = LOGO_URL
         assert is_placeholder(
             self._apod(title="NASA Science", url=logo, hdurl=logo, date="1998-11-22")
         )
@@ -168,3 +180,92 @@ class TestArchiveClient:
         for _ in range(200):
             d = client._random_date(rng)
             assert date(1995, 6, 16) <= d <= date.today()
+
+
+class TestParserResilience:
+    """The parser should survive NASA renaming CSS classes or tweaking titles."""
+
+    ORIG = (
+        "https://assets.science.nasa.gov/content/dam/science/cds/apod/apod/"
+        "1998/november/crab_4wav_big.gif"
+    )
+
+    def parse(self, html: str):
+        return parse_apod_page(html, date(1998, 11, 22))
+
+    def test_image_found_when_media_class_is_renamed(self):
+        html = fixture("apod_1998_11_22.html").replace(
+            "media-detail-hero__media", "renamed-media-wrapper"
+        )
+        apod = self.parse(html)
+        assert apod is not None
+        assert apod.media_type == "image"
+        assert apod.url == self.ORIG
+
+    def test_resized_image_normalised_to_original(self):
+        html = fixture("apod_2026_11_05.html")
+        html = html.replace("media-detail-hero__media", "renamed-media-wrapper")
+        html = html.replace(
+            '<a href="https://assets.science.nasa.gov/content/dam/science/cds/'
+            'apod/apod/2026/november/PIA17144EnceladusPandora.png"',
+            '<a href="#"',
+        )
+        apod = parse_apod_page(html, date(2026, 11, 5))
+        assert apod is not None
+        assert apod.url == (
+            "https://assets.science.nasa.gov/content/dam/science/cds/apod/apod/"
+            "2026/november/PIA17144EnceladusPandora.png"
+        )
+
+    def test_unrelated_site_images_are_not_mistaken_for_the_apod(self):
+        html = fixture("apod_1998_11_22.html")
+        html = html.replace("media-detail-hero__media", "renamed-media-wrapper")
+        html = html.replace("cds/apod", "cds/other")
+        apod = self.parse(html)
+        assert apod is not None
+        assert apod.media_type == "other"
+
+    def test_explanation_found_when_description_class_is_renamed(self):
+        html = fixture("apod_1998_11_22.html").replace(
+            "media-detail-hero__description", "renamed-description"
+        )
+        apod = self.parse(html)
+        assert apod is not None
+        assert apod.explanation.startswith("This is the mess that is left")
+        assert "Date November" not in apod.explanation
+
+    def test_title_without_site_suffix(self):
+        html = fixture("apod_1998_11_22.html").replace(
+            " - NASA Science</title>", "</title>"
+        )
+        apod = self.parse(html)
+        assert apod is not None
+        assert apod.date == date(1998, 11, 22)
+
+    def test_og_title_used_when_title_tag_is_unrecognised(self):
+        html = fixture("apod_1998_11_22.html").replace(
+            CRAB_TITLE_TAG,
+            "<title>Something else entirely</title>"
+            '<meta property="og:title" content="APOD: 1998 November 22 '
+            '&#8211; The High Energy Crab Nebula - NASA Science">',
+        )
+        apod = self.parse(html)
+        assert apod is not None
+        assert apod.title == "The High Energy Crab Nebula"
+
+    def test_date_taken_from_page_body_when_titles_are_unrecognised(self):
+        html = fixture("apod_1998_11_22.html").replace(
+            CRAB_TITLE_TAG,
+            "<title>Something else entirely</title>",
+        )
+        apod = self.parse(html)
+        assert apod is not None
+        assert apod.date == date(1998, 11, 22)
+        assert apod.title == "The High Energy Crab Nebula"
+
+    def test_wrong_date_in_body_is_still_rejected(self):
+        html = fixture("apod_1998_11_22.html").replace(
+            CRAB_TITLE_TAG,
+            "<title>Something else entirely</title>",
+        )
+        assert parse_apod_page(html, date(1998, 11, 23)) is None

@@ -32,7 +32,10 @@ def apod(url="https://assets.science.nasa.gov/a/real.jpg", **kw) -> APODResponse
     return APODResponse.model_validate(data)
 
 
-LOGO = "https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa-logo@2x.png"
+LOGO = (
+    "https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/"
+    "nasa-logo@2x.png"
+)
 
 
 class TestIsPostable:
@@ -80,6 +83,7 @@ class TestMain:
 
     def run_main(self, script, archive_apods, today, upload_results):
         ig = Mock()
+        self.ig = ig
         ig.get_account_info.return_value = {"username": "u", "media_count": 1}
         ig.upload_image.side_effect = upload_results
         archive = Mock()
@@ -103,10 +107,10 @@ class TestMain:
 
     def test_never_posts_placeholder(self, script, env):
         placeholder = apod(LOGO, title="NASA Science")
-        ig = Mock()
         with pytest.raises(SystemExit) as exc:
-            ig = self.run_main(script, [placeholder] * 100, placeholder, [])
+            self.run_main(script, [placeholder] * 100, placeholder, [])
         assert exc.value.code == 1
+        self.ig.upload_image.assert_not_called()
 
     def test_falls_back_to_today_when_posting_fails(self, script, env):
         today = apod("https://x/today.jpg")
